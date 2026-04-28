@@ -1,0 +1,212 @@
+{% extends "super/super_base.html" %}
+{% block title %}ESP Boards{% endblock %}
+{% block page_title %}ESP Board Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-cpu" style="color:#a29bfe;margin-right:8px"></i>ESP Board Management</h1>
+    <p>Register boards, manage Blynk tokens, WiFi, and check online/offline status</p>
+</div>
+
+<!-- Add New Board -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-plus-circle" style="color:#a29bfe;margin-right:8px"></i>Register New Board</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('super.boards') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Board Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. ESP32 Living Room" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Board Type</label>
+                    <select name="board_type" class="form-select">
+                        <option value="esp32">ESP32</option>
+                        <option value="esp8266">ESP8266</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">WiFi SSID</label>
+                    <input type="text" name="wifi_ssid" class="form-control" placeholder="Home WiFi name">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Blynk Template ID</label>
+                    <input type="text" name="blynk_template_id" class="form-control" placeholder="e.g. TMPL3n_dCuyOY">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Blynk Template Name</label>
+                    <input type="text" name="blynk_template_name" class="form-control" placeholder="e.g. BrightHaven1">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Blynk Auth Token <span style="color:#e74c3c">*</span></label>
+                    <input type="text" name="blynk_token" class="form-control" placeholder="Paste your Blynk auth token" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">MQTT Topic Prefix</label>
+                    <input type="text" name="mqtt_topic_prefix" class="form-control" placeholder="e.g. brighthaven1/relay/">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px">
+                <i class="bi bi-plus-lg"></i> Register Board
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Registered Boards -->
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Registered Boards</h2>
+        <span class="badge badge-purple">{{ boards|length }} boards</span>
+    </div>
+    <div class="section-card-body">
+        {% if boards %}
+        <div style="display:grid;gap:16px">
+            {% for board in boards %}
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+                    <div class="{{ 'badge-on' if board.online else 'badge-danger' }}" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center">
+                        <i class="bi bi-cpu" style="font-size:1.5rem"></i>
+                    </div>
+                    <div style="flex:1">
+                        <div style="font-weight:700;font-size:1.1rem">{{ board.name }}</div>
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ board.board_type|upper }} · ID: {{ board.id }}</div>
+                    </div>
+                    <span class="badge {{ 'badge-on' if board.online else 'badge-danger' }}">
+                        <i class="bi bi-circle-fill" style="font-size:0.45rem"></i>
+                        {{ 'Online' if board.online else 'Offline' }}
+                    </span>
+                    <button onclick="checkBoardStatus('{{ board.id }}')" class="btn btn-sm btn-secondary" title="Refresh Status">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+                    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px">Blynk Token</div>
+                        <div style="font-size:0.82rem;font-family:monospace;word-break:break-all;margin-top:4px">{{ board.blynk_token or 'Not set' }}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px">Template</div>
+                        <div style="font-size:0.85rem;margin-top:4px">{{ board.blynk_template_name or 'N/A' }}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px">MQTT Topic</div>
+                        <div style="font-size:0.85rem;font-family:monospace;margin-top:4px">{{ board.mqtt_topic_prefix or 'N/A' }}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px">Free Pins</div>
+                        <div style="font-size:0.85rem;margin-top:4px">
+                            {% if board.free_pins %}
+                                {% for p in board.free_pins %}<span class="badge badge-gold" style="margin:2px">{{ p }}</span>{% endfor %}
+                            {% else %}
+                                <span style="color:rgba(255,255,255,0.3)">All pins used</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WiFi + Rename Row -->
+                <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
+                    <form method="POST" action="{{ url_for('super.update_board_wifi', board_id=board.id) }}" style="display:flex;gap:8px;flex:2;min-width:260px">
+                        <div class="form-group" style="margin:0;flex:1">
+                            <input type="text" name="wifi_ssid" class="form-control" placeholder="New WiFi SSID" value="{{ board.wifi_ssid or '' }}" style="height:36px;font-size:0.82rem">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1">
+                            <input type="password" name="wifi_pass" class="form-control" placeholder="WiFi Password" style="height:36px;font-size:0.82rem">
+                        </div>
+                        <button type="submit" class="btn btn-sm" style="background:rgba(162,155,254,0.15);color:#a29bfe;border:1px solid rgba(162,155,254,0.3);white-space:nowrap;height:36px">
+                            <i class="bi bi-wifi"></i> Push WiFi
+                        </button>
+                    </form>
+                    <!-- Rename -->
+                    <div style="display:flex;gap:6px;flex:1;min-width:180px">
+                        <input type="text" id="rename-{{ board.id }}" class="form-control" placeholder="Device name" value="{{ board.name }}" style="height:36px;font-size:0.82rem">
+                        <button onclick="renameBoard('{{ board.id }}')" class="btn btn-sm" style="height:36px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);white-space:nowrap">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OTA + Reset + Delete Row -->
+                <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                    <!-- OTA -->
+                    <div style="display:flex;gap:6px;flex:2;min-width:260px">
+                        <input type="text" id="ota-url-{{ board.id }}" class="form-control" placeholder="Firmware URL (https://...)" style="height:36px;font-size:0.82rem">
+                        <button onclick="triggerOTA('{{ board.id }}')" class="btn btn-sm" style="height:36px;background:rgba(39,174,96,0.15);color:#27ae60;border:1px solid rgba(39,174,96,0.3);white-space:nowrap">
+                            <i class="bi bi-cloud-arrow-down"></i> OTA
+                        </button>
+                    </div>
+                    <button onclick="checkBoardStatus('{{ board.id }}')" class="btn btn-sm btn-secondary" style="height:36px" title="Refresh Status">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button onclick="factoryResetBoard('{{ board.id }}')" class="btn btn-sm" style="height:36px;background:rgba(230,126,34,0.15);color:#e67e22;border:1px solid rgba(230,126,34,0.3)">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                    <form method="POST" action="{{ url_for('super.delete_board', board_id=board.id) }}" onsubmit="return confirm('Delete this board and all its data?')">
+                        <button type="submit" class="btn btn-sm" style="height:36px;background:rgba(192,57,43,0.15);color:#e74c3c;border:1px solid rgba(192,57,43,0.3)">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:48px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-cpu" style="font-size:2.5rem;display:block;margin-bottom:12px"></i>
+            <p>No boards registered yet. Add one above.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function checkBoardStatus(boardId) {
+    fetch(`/super/boards/${boardId}/status`)
+        .then(r => r.json())
+        .then(d => {
+            showToast(`${d.board}: ${d.online ? '🟢 Online' : '🔴 Offline'}`, d.online ? 'success' : 'error');
+            setTimeout(() => location.reload(), 1000);
+        });
+}
+
+function renameBoard(boardId) {
+    const name = document.getElementById('rename-' + boardId).value.trim();
+    if (!name) { showToast('Name cannot be empty', 'error'); return; }
+    fetch(`/api/boards/${boardId}/name`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name})
+    }).then(r => r.json()).then(d => {
+        showToast(d.ok ? `Renamed to "${name}"` : 'Rename failed', d.ok ? 'success' : 'error');
+    });
+}
+
+function triggerOTA(boardId) {
+    const url = document.getElementById('ota-url-' + boardId).value.trim();
+    if (!url) { showToast('Firmware URL is required', 'error'); return; }
+    if (!confirm(`Push OTA update to ${boardId}?\n${url}`)) return;
+    fetch(`/api/boards/${boardId}/ota`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url, sha256: ''})
+    }).then(r => r.json()).then(d => {
+        showToast(d.ok ? '🔄 OTA update triggered! Device will reboot.' : 'OTA failed - MQTT offline?', d.ok ? 'success' : 'error');
+    });
+}
+
+function factoryResetBoard(boardId) {
+    if (!confirm(`⚠️ Factory reset ${boardId}?\nThis will erase ALL stored settings on the device.`)) return;
+    fetch(`/api/boards/${boardId}/reset`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}
+    }).then(r => r.json()).then(d => {
+        showToast(d.ok ? 'Factory reset command sent!' : 'Reset failed', d.ok ? 'success' : 'error');
+    });
+}
+</script>
+{% endblock %}

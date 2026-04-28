@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} - {{ title }}{% endblock %}
+{% block content %}
+
+<div class="auth-page" style="text-align: center; justify-content: center;">
+    <div class="glass-card" style="padding: 3rem; max-width: 500px; width: 100%;">
+        <div class="auth-logo" style="margin-bottom: 2rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: var(--gold);"></i>
+            <h1 style="font-size: 4rem; margin: 1rem 0;">{{ code }}</h1>
+        </div>
+        
+        <h2 style="margin-bottom: 1rem; color: white;">{{ title }}</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem; line-height: 1.6;">
+            {{ msg }}
+        </p>
+
+        <a href="/" class="btn btn-primary" style="padding: 10px 30px; font-weight: 600;">
+            <i class="bi bi-house-door"></i> <span>Return Home</span>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

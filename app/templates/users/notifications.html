@@ -1,0 +1,36 @@
+{% extends "users/user_base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-bell" style="color:var(--gold);margin-right:8px"></i>Notifications</h1>
+    <p>Your recent alerts and system messages</p>
+</div>
+<div class="section-card">
+    <div class="section-card-header"><h2>Recent Notifications</h2></div>
+    <div class="section-card-body">
+        {% if notifications %}
+        <table class="bh-table">
+            <thead>
+                <tr><th>Date & Time</th><th>Message</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for n in notifications %}
+                <tr>
+                    <td style="color:rgba(255,255,255,0.5);font-size:0.8rem">{{ n.timestamp }}</td>
+                    <td>{{ n.message }}</td>
+                    <td><span class="badge {% if n.is_read %}badge-off{% else %}badge-gold{% endif %}">{{ 'Read' if n.is_read else 'New' }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-bell-slash" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+            <p style="font-size:1rem">No notifications yet</p>
+            <p style="font-size:0.875rem;margin-top:8px">System alerts and updates will appear here</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

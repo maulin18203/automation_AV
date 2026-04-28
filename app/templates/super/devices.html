@@ -1,0 +1,171 @@
+{% extends "super/super_base.html" %}
+{% block title %}Devices{% endblock %}
+{% block page_title %}Device Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-hdd-network" style="color:#a29bfe;margin-right:8px"></i>Device Management</h1>
+    <p>Add switches, fans, lights, AC — assign to rooms and ESP boards with Blynk pins</p>
+</div>
+
+<!-- Add New Device -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-plus-circle" style="color:#a29bfe;margin-right:8px"></i>Add New Device</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('super.devices') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Device Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Ceiling Fan, LED Strip" required>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Device Type</label>
+                    <select name="device_type" class="form-select" id="deviceType">
+                        {% for dtype, icon in device_types.items() %}
+                        <option value="{{ dtype }}">{{ dtype|capitalize }} ({{ icon }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Room</label>
+                    <select name="room_name" class="form-select" required>
+                        <option value="">Select Room...</option>
+                        {% for room in rooms %}
+                        <option value="{{ room }}">{{ room }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:flex-end">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">ESP Board</label>
+                    <select name="board_id" class="form-select" id="boardSelect" onchange="loadFreePins(this.value)" required>
+                        <option value="">Select Board...</option>
+                        {% for board in boards %}
+                        <option value="{{ board.id }}">{{ board.name }} ({{ board.board_type|upper }}) — {{ board.free_pins|length }} free pins</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Virtual Pin</label>
+                    <select name="pin" class="form-select" id="pinSelect" required>
+                        <option value="">Select board first...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding:10px 24px;height:42px">
+                    <i class="bi bi-plus-lg"></i> Add Device
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid" style="margin-bottom:24px">
+    {% set on_devs = devices.values()|selectattr('state')|list|length %}
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Total Devices</div><div class="stat-icon" style="color:#a29bfe"><i class="bi bi-hdd-network"></i></div></div>
+        <div class="stat-value">{{ devices|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Devices ON</div><div class="stat-icon green"><i class="bi bi-lightning-charge"></i></div></div>
+        <div class="stat-value">{{ on_devs }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Devices OFF</div><div class="stat-icon red"><i class="bi bi-power"></i></div></div>
+        <div class="stat-value">{{ devices|length - on_devs }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Rooms</div><div class="stat-icon gold"><i class="bi bi-house"></i></div></div>
+        <div class="stat-value">{{ rooms|length }}</div>
+    </div>
+</div>
+
+<!-- Devices by Room -->
+{% set all_rooms = [] %}
+{% for dev_id, dev in devices.items() %}
+    {% if dev.room not in all_rooms %}
+        {% if all_rooms.append(dev.room) %}{% endif %}
+    {% endif %}
+{% endfor %}
+
+{% for room in all_rooms %}
+{% set room_devices = devices.items()|selectattr('1.room', 'equalto', room)|list %}
+{% if room_devices %}
+<div class="section-card" style="margin-bottom:20px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-house" style="margin-right:8px;color:#a29bfe"></i>{{ room }}</h2>
+        <span style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ room_devices|selectattr('1.state')|list|length }} / {{ room_devices|length }} ON</span>
+    </div>
+    <div class="section-card-body">
+        <div class="devices-grid">
+            {% for dev_id, dev in room_devices %}
+            <div class="device-card {% if dev.state %}device-on{% endif %}" style="position:relative">
+                <div class="device-icon"><i class="{{ dev.icon }}" style="font-size:1.5rem"></i></div>
+                <div class="device-name">{{ dev.name }}</div>
+                <div class="device-room" style="font-size:0.72rem">{{ dev.board_id or dev.board|upper }} · {{ dev.pin }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:6px">
+                    <span class="badge {% if dev.state %}badge-on{% else %}badge-off{% endif %}">{{ 'ON' if dev.state else 'OFF' }}</span>
+                    <div style="display:flex;gap:4px">
+                        <button onclick="forceToggle('{{ dev_id }}', true)" class="btn btn-sm" style="padding:3px 8px;font-size:0.68rem;background:rgba(39,174,96,0.15);color:#2ecc71;border:1px solid rgba(39,174,96,0.3)" title="Force ON">
+                            <i class="bi bi-power"></i> ON
+                        </button>
+                        <button onclick="forceToggle('{{ dev_id }}', false)" class="btn btn-sm" style="padding:3px 8px;font-size:0.68rem;background:rgba(192,57,43,0.15);color:#e74c3c;border:1px solid rgba(192,57,43,0.3)" title="Force OFF">
+                            <i class="bi bi-power"></i> OFF
+                        </button>
+                        <form method="POST" action="{{ url_for('super.delete_device', device_key=dev_id) }}" onsubmit="return confirm('Delete {{ dev.name }}?')" style="margin:0">
+                            <button type="submit" class="btn btn-sm" style="padding:3px 8px;font-size:0.68rem;background:rgba(192,57,43,0.08);color:#e74c3c;border:1px solid rgba(192,57,43,0.15)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<script>
+function loadFreePins(boardId) {
+    const pinSelect = document.getElementById('pinSelect');
+    pinSelect.innerHTML = '<option value="">Loading...</option>';
+    if (!boardId) { pinSelect.innerHTML = '<option value="">Select board first...</option>'; return; }
+    fetch(`/super/api/free-pins/${boardId}`)
+        .then(r => r.json())
+        .then(d => {
+            pinSelect.innerHTML = '';
+            if (d.pins.length === 0) {
+                pinSelect.innerHTML = '<option value="">No free pins!</option>';
+                return;
+            }
+            d.pins.forEach(pin => {
+                const opt = document.createElement('option');
+                opt.value = pin; opt.textContent = pin;
+                pinSelect.appendChild(opt);
+            });
+        });
+}
+
+function forceToggle(deviceKey, state) {
+    fetch('/super/api/force-toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device: deviceKey, state: state})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            showToast(`Force ${state ? 'ON' : 'OFF'}: ${deviceKey}`, state ? 'success' : 'info');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast('Force toggle failed', 'error');
+        }
+    });
+}
+</script>
+{% endblock %}

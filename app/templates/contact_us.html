@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Contact Us{% endblock %}
+{% block content %}
+<div class="auth-page" style="padding-top:120px;padding-bottom:60px;align-items:flex-start">
+    <div class="glass-card auth-card" style="max-width:600px;padding:48px">
+        <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:8px">Contact Us</h2>
+        <p class="subtitle">We'd love to hear from you. Send us a message!</p>
+
+        {% for cat, msg in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ cat }}" data-auto-dismiss>{{ msg }}</div>
+        {% endfor %}
+
+        <form method="POST" action="{{ url_for('home.contact_us') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Your name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="your@email.com" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject</label>
+                <select name="subject" class="form-select" required>
+                    <option value="">Select a subject</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="support">Technical Support</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea name="message" class="form-control" rows="5" placeholder="Your message..." required style="resize:vertical"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i> Send Message
+            </button>
+        </form>
+
+        <div style="margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08);display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center">
+                <i class="bi bi-envelope-fill" style="color:var(--gold);font-size:1.5rem"></i>
+                <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:8px">Email</div>
+                <div style="font-size:0.875rem;margin-top:4px"><a href="mailto:support@brighthaven.com" style="color:rgba(255,255,255,0.7);text-decoration:none">support@brighthaven.com</a></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center">
+                <i class="bi bi-telephone-fill" style="color:var(--teal-light);font-size:1.5rem"></i>
+                <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:8px">Phone</div>
+                <div style="font-size:0.875rem;margin-top:4px"><a href="tel:+919909618203" style="color:rgba(255,255,255,0.7);text-decoration:none">+91 9909618203</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>body{overflow:auto}</style>
+{% endblock %}

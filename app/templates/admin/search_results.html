@@ -1,0 +1,41 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Search Results{% endblock %}
+{% block page_title %}Search{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-search" style="color:var(--gold);margin-right:8px"></i>Search Results</h1>
+    <p>Results for: "<strong>{{ query }}</strong>"</p>
+</div>
+<div class="section-card">
+    <div class="section-card-header"><h2>{{ users|length }} user(s) found</h2></div>
+    <div class="section-card-body">
+        {% if users %}
+        <table class="bh-table">
+            <thead><tr><th>User</th><th>Email</th><th>Joined</th></tr></thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--gold));display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700">{{ (u.full_name or u.username)[0].upper() }}</div>
+                            <div>
+                                <div style="font-size:0.875rem;font-weight:500">{{ u.full_name or u.username }}</div>
+                                <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-size:0.85rem;color:rgba(255,255,255,0.5)">{{ u.email or '—' }}</td>
+                    <td style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-search" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+            <p>No users found matching "{{ query }}"</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

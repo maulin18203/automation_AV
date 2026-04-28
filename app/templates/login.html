@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+
+<div class="auth-page">
+    <div class="glass-card auth-card">
+        <div class="auth-logo">
+            <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="BrightHaven Logo">
+            <h1>BrightHaven</h1>
+            <p>Premium Smart Home Platform</p>
+        </div>
+
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Sign in to control your smart home</p>
+
+        {% for cat, msg in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ cat }}" data-auto-dismiss>
+            <i class="bi bi-{% if cat=='success' %}check-circle{% elif cat=='danger' %}x-circle{% else %}info-circle{% endif %}"></i>
+            {{ msg }}
+        </div>
+        {% endfor %}
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Username or Email</label>
+                <input type="text" id="loginIdentifier" class="form-control" placeholder="Enter username or email" required autofocus>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="pw-toggle-wrap">
+                    <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                    <button type="button" class="pw-toggle-btn" onclick="togglePwVis(this)"><i class="bi bi-eye"></i></button>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+                <a href="{{ url_for('home.forgot_password') }}" style="color:var(--gold);font-size:0.8rem;text-decoration:none;font-weight:500">Forgot password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary" id="loginBtn">
+                <i class="bi bi-box-arrow-in-right"></i> <span>Sign In</span>
+            </button>
+        </form>
+
+        <div class="auth-divider">or</div>
+
+        <div class="auth-links">
+            Don't have an account? <a href="{{ url_for('home.signup') }}">Create one</a>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDT_Qw-ew6sW47fLrPMInTwwwSLHBvLPao",
+      authDomain: "brighthaven-93fc1.firebaseapp.com",
+      projectId: "brighthaven-93fc1",
+      storageBucket: "brighthaven-93fc1.firebasestorage.app",
+      messagingSenderId: "588035080074",
+      appId: "1:588035080074:web:3e30b31dab428297fa1273"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let identifier = document.getElementById('loginIdentifier').value;
+        const password = document.getElementById('password').value;
+        
+        const originalText = loginBtn.innerHTML;
+        loginBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span>Authenticating...</span>';
+        loginBtn.disabled = true;
+
+        try {
+            // 1. Check if identifier is an email. If not, look up email by username
+            let email = identifier;
+            if (!identifier.includes('@')) {
+                const lookupRes = await fetch('/api/getEmailFromUsername', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: identifier })
+                });
+                const lookupData = await lookupRes.json();
+                if (lookupData.status === 'success') {
+                    email = lookupData.email;
+                } else {
+                    throw new Error(lookupData.message || 'User not found');
+                }
+            }
+
+            // 2. Authenticate with Firebase directly from browser
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            
+            // 3. Get secure ID token
+            const idToken = await userCredential.user.getIdToken(true);
+            
+            // 4. Send token to Python Backend to create secure session
+            const res = await fetch('/api/sessionLogin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: idToken })
+            });
+            const data = await res.json();
+            
+            if(data.status === 'success') {
+                window.location.href = data.redirect;
+            } else {
+                alert("Login Error: " + data.message);
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
+                auth.signOut(); // Clean up invalid state
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Authentication failed: " + error.message);
+            loginBtn.innerHTML = originalText;
+            loginBtn.disabled = false;
+        }
+    });
+
+    function togglePwVis(btn) {
+        const input = btn.previousElementSibling;
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+</script>
+{% endblock %}

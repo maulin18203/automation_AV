@@ -1,0 +1,127 @@
+{% extends "super/super_base.html" %}
+{% block title %}Admin Accounts{% endblock %}
+{% block page_title %}Admin Account Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-person-fill-gear" style="color:#a29bfe;margin-right:8px"></i>Admin Account Management</h1>
+    <p>Create and manage administrator accounts — Super Admin exclusive</p>
+</div>
+
+<!-- Add New Admin -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-person-plus" style="color:#a29bfe;margin-right:8px"></i>Create New Admin</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('super.admins') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. John Smith" required>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="e.g. john_smith" required>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="admin@brighthaven.com" required>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required
+                        minlength="6">
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select">
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px">
+                <i class="bi bi-person-plus"></i> Create Admin
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Admin List -->
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>All Administrators</h2>
+        <span class="badge badge-purple">{{ admins|length }} accounts</span>
+    </div>
+    <div class="section-card-body">
+        {% if admins %}
+        <table class="bh-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for admin in admins %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            {% if admin.role == 'super_admin' %}
+                            <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">
+                            {% else %}
+                            <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--gold));display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">
+                            {% endif %}
+                                {{ (admin.full_name | default(admin.username) | default('A'))[:1] | upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight:600">{{ admin.full_name | default(admin.username) }}</div>
+                                <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">@{{ admin.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-size:0.85rem">{{ admin.email | default('N/A') }}</td>
+                    <td>
+                        <span class="badge {{ 'badge-purple' if admin.role == 'super_admin' else 'badge-gold' }}">
+                            {{ admin.role|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ 'badge-danger' if admin.suspended else 'badge-on' }}">
+                            {{ 'Suspended' if admin.suspended else 'Active' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if admin.id != user.id %}
+                        <form method="POST" action="{{ url_for('super.delete_admin', admin_id=admin.id) }}"
+                            onsubmit="return confirm('Delete admin {{ admin.username }}? This cannot be undone.')"
+                            style="margin:0">
+                            <input type="hidden" name="collection" value="{{ admin.collection }}">
+                            <button type="submit" class="btn btn-sm"
+                                style="padding:4px 10px;font-size:0.72rem;background:rgba(192,57,43,0.12);color:#e74c3c;border:1px solid rgba(192,57,43,0.2)">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </form>
+                        {% else %}
+                        <span style="font-size:0.75rem;color:rgba(255,255,255,0.3)">You</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:48px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-people" style="font-size:2.5rem;display:block;margin-bottom:12px"></i>
+            <p>No admin accounts found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "super/super_base.html" %}
+{% block title %}Super Admin Dashboard{% endblock %}
+{% block page_title %}Command Center{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-shield-fill-check" style="color:#a29bfe;margin-right:8px"></i>Super Admin Dashboard</h1>
+    <p>Welcome, <strong>{{ user.name or user.username }}</strong> — Full system control</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">ESP Boards</div><div class="stat-icon" style="color:#a29bfe"><i class="bi bi-cpu"></i></div></div>
+        <div class="stat-value">{{ boards|length }}</div>
+        <div class="stat-sub" id="boardsOnlineCount">Checking status...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Rooms</div><div class="stat-icon gold"><i class="bi bi-house"></i></div></div>
+        <div class="stat-value">{{ rooms_count }}</div>
+        <div class="stat-sub">Configured</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Devices ON</div><div class="stat-icon green"><i class="bi bi-lightning-charge"></i></div></div>
+        <div class="stat-value">{{ devices_on }}</div>
+        <div class="stat-sub">of {{ devices_count }} total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Active Timers</div><div class="stat-icon red"><i class="bi bi-alarm"></i></div></div>
+        <div class="stat-value">{{ active_timers }}</div>
+        <div class="stat-sub">Running</div>
+    </div>
+</div>
+
+<!-- Connected Devices Grid -->
+<div class="section-card" style="margin-bottom:20px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-hdd-network" style="color:#a29bfe;margin-right:8px"></i>Connected Devices</h2>
+        <a href="{{ url_for('super.wifi_manager') }}" class="btn btn-sm btn-secondary"><i class="bi bi-wifi"></i> WiFi Manager</a>
+    </div>
+    <div class="section-card-body" id="connectedDevicesGrid">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+            {% for board in boards %}
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px;position:relative" id="board-card-{{ board.id }}">
+                <!-- Status indicator bar -->
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;background:{{ '#27ae60' if board.online else '#e74c3c' }}"></div>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                    <div style="width:44px;height:44px;border-radius:10px;background:{{ 'rgba(39,174,96,0.15)' if board.online else 'rgba(231,76,60,0.15)' }};display:flex;align-items:center;justify-content:center">
+                        <i class="bi bi-cpu" style="font-size:1.3rem;color:{{ '#27ae60' if board.online else '#e74c3c' }}"></i>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:700;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ board.name }}</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">{{ board.board_type|upper }} · {{ board.blynk_template_name or 'N/A' }}</div>
+                    </div>
+                    <span class="badge {{ 'badge-on' if board.online else 'badge-danger' }}">
+                        <i class="bi bi-circle-fill" style="font-size:0.45rem"></i>
+                        {{ 'Online' if board.online else 'Offline' }}
+                    </span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem">
+                    <div style="color:rgba(255,255,255,0.5)"><i class="bi bi-wifi" style="margin-right:4px;color:#a29bfe"></i>{{ board.wifi_ssid or 'N/A' }}</div>
+                    <div style="color:rgba(255,255,255,0.5)"><i class="bi bi-key" style="margin-right:4px;color:#a29bfe"></i>{{ board.blynk_token[:8] if board.blynk_token else 'N/A' }}...</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if not boards %}
+        <div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-cpu" style="font-size:2rem;display:block;margin-bottom:12px"></i>
+            <p>No boards registered. <a href="{{ url_for('super.boards') }}" style="color:#a29bfe">Add one →</a></p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dashboard-grid-2">
+    <!-- Quick Actions -->
+    <div class="section-card">
+        <div class="section-card-header"><h2><i class="bi bi-lightning" style="color:#a29bfe;margin-right:8px"></i>Quick Actions</h2></div>
+        <div class="section-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <a href="{{ url_for('super.boards') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-cpu" style="color:#a29bfe"></i> Manage Boards
+            </a>
+            <a href="{{ url_for('super.wifi_manager') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-wifi" style="color:#a29bfe"></i> WiFi Manager
+            </a>
+            <a href="{{ url_for('super.rooms') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-house-add" style="color:#a29bfe"></i> Manage Rooms
+            </a>
+            <a href="{{ url_for('super.devices') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-hdd-network" style="color:#a29bfe"></i> Manage Devices
+            </a>
+            <a href="{{ url_for('super.timers') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-alarm" style="color:#a29bfe"></i> Set Timers
+            </a>
+            <a href="{{ url_for('super.admins') }}" class="btn btn-secondary" style="width:100%;justify-content:flex-start;font-size:0.82rem;padding:10px 14px">
+                <i class="bi bi-person-fill-gear" style="color:#a29bfe"></i> Admin Accounts
+            </a>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="section-card">
+        <div class="section-card-header"><h2>System Status</h2></div>
+        <div class="section-card-body" style="display:grid;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="font-size:0.85rem"><i class="bi bi-broadcast" style="color:#a29bfe;margin-right:8px"></i>MQTT Broker</span>
+                <span class="badge {{ 'badge-on' if mqtt_connected else 'badge-danger' }}">
+                    <i class="bi bi-circle-fill" style="font-size:0.5rem"></i> {{ 'Connected' if mqtt_connected else 'Offline' }}
+                </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="font-size:0.85rem"><i class="bi bi-people" style="color:#a29bfe;margin-right:8px"></i>Total Users</span>
+                <span class="badge badge-gold">{{ users_count }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="font-size:0.85rem"><i class="bi bi-activity" style="color:#a29bfe;margin-right:8px"></i>Logs Today</span>
+                <span style="font-size:0.85rem;font-weight:600">{{ logs_today }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="font-size:0.85rem"><i class="bi bi-hdd" style="color:#a29bfe;margin-right:8px"></i>Platform</span>
+                <span class="badge badge-purple">v4.0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Logs -->
+<div class="section-card" style="margin-top:20px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-clock-history" style="color:#a29bfe;margin-right:8px"></i>Recent Activity</h2>
+        <a href="{{ url_for('admin.logs') }}" class="btn btn-sm btn-secondary">View All</a>
+    </div>
+    <div class="section-card-body">
+        {% if recent_logs %}
+        <table class="bh-table">
+            <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td>{{ log.username }}</td>
+                    <td>{{ log.action }}</td>
+                    <td style="color:rgba(255,255,255,0.4);font-size:0.8rem">{{ log.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-journal" style="font-size:2rem;display:block;margin-bottom:12px"></i>
+            <p>No activity logs yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Live check board status
+fetch('/api/boards/status')
+    .then(r => r.json())
+    .then(boards => {
+        let online = boards.filter(b => b.online).length;
+        document.getElementById('boardsOnlineCount').textContent = `${online} online / ${boards.length} total`;
+    })
+    .catch(() => {});
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-bell" style="color:var(--gold);margin-right:8px"></i>Notifications</h1>
+    <p>Contact requests and system messages</p>
+</div>
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Contact Us Requests</h2>
+        <span class="badge badge-gold">{{ contact_requests|length }} messages</span>
+    </div>
+    <div class="section-card-body">
+        {% if contact_requests %}
+        <div style="overflow-x:auto">
+        <table class="bh-table">
+            <thead><tr><th>#</th><th>From</th><th>Email</th><th>Subject</th><th>Message</th><th>Time</th></tr></thead>
+            <tbody>
+                {% for r in contact_requests %}
+                <tr>
+                    <td style="color:rgba(255,255,255,0.3);font-size:0.78rem">{{ r.id }}</td>
+                    <td style="font-size:0.875rem;font-weight:500">{{ r.username or '—' }}</td>
+                    <td style="font-size:0.8rem;color:rgba(255,255,255,0.5)">{{ r.email or '—' }}</td>
+                    <td>{% if r.subject %}<span class="badge badge-gold">{{ r.subject }}</span>{% else %}—{% endif %}</td>
+                    <td style="font-size:0.85rem;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.message }}</td>
+                    <td style="font-size:0.78rem;color:rgba(255,255,255,0.4)">{{ r.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-inbox" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+            <p>No contact requests yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

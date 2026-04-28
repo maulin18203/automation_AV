@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BrightHaven Super Admin — Full platform control.">
+    <title>{% block title %}Super Admin{% endblock %} — BrightHaven</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/pr1.png') }}" type="image/png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <style>
+        :root { --accent: #a29bfe; --accent-light: #d4d0ff; }
+        .sidebar { border-right: 1px solid rgba(162,155,254,0.15) !important; }
+        .sidebar-header .brand-sub { color: var(--accent) !important; }
+        .super-badge { background: linear-gradient(135deg, #6c5ce7, #a29bfe); padding: 6px 14px; border-radius: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 12px 18px 0; text-align: center; color: #fff; }
+        .sidebar-link.active { background: rgba(162,155,254,0.12) !important; border-left: 3px solid var(--accent) !important; }
+        .sidebar-link:hover { background: rgba(162,155,254,0.08) !important; }
+        .topbar { border-bottom: 1px solid rgba(162,155,254,0.12) !important; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Global Delay Loader -->
+<div id="global-loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">BRIGHTHAVEN</div>
+</div>
+<script>
+(function() {
+    const loader = document.getElementById('global-loader');
+    if (sessionStorage.getItem('bh_super_loader_shown')) {
+        if (loader) loader.style.display = 'none';
+    } else {
+        window.addEventListener('load', function() {
+            if (loader) {
+                loader.style.opacity = '0';
+                loader.style.visibility = 'hidden';
+                loader.remove();
+                sessionStorage.setItem('bh_super_loader_shown', 'true');
+            }
+        });
+    }
+})();
+</script><div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="{{ url_for('super.dashboard') }}" class="sidebar-logo">
+            <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="Logo">
+            <div>
+                <div class="brand-name">BrightHaven</div>
+                <div class="brand-sub">Super Admin</div>
+            </div>
+        </a>
+        <div class="super-badge"><i class="bi bi-shield-fill-check"></i> Super Admin</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-title">Command Center</div>
+        <a href="{{ url_for('super.dashboard') }}" class="sidebar-link {% if request.endpoint=='super.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{{ url_for('super.boards') }}" class="sidebar-link {% if request.endpoint=='super.boards' %}active{% endif %}">
+            <i class="bi bi-cpu"></i> ESP Boards
+        </a>
+        <a href="{{ url_for('super.wifi_manager') }}" class="sidebar-link {% if request.endpoint=='super.wifi_manager' %}active{% endif %}">
+            <i class="bi bi-wifi"></i> WiFi Manager
+        </a>
+
+        <div class="nav-section-title">Configuration</div>
+        <a href="{{ url_for('super.rooms') }}" class="sidebar-link {% if request.endpoint=='super.rooms' %}active{% endif %}">
+            <i class="bi bi-house-add"></i> Rooms
+        </a>
+        <a href="{{ url_for('super.devices') }}" class="sidebar-link {% if request.endpoint=='super.devices' %}active{% endif %}">
+            <i class="bi bi-hdd-network"></i> Devices
+        </a>
+        <a href="{{ url_for('super.timers') }}" class="sidebar-link {% if request.endpoint=='super.timers' %}active{% endif %}">
+            <i class="bi bi-alarm"></i> Timers
+        </a>
+
+        <div class="nav-section-title">Administration</div>
+        <a href="{{ url_for('super.admins') }}" class="sidebar-link {% if request.endpoint=='super.admins' %}active{% endif %}">
+            <i class="bi bi-person-fill-gear"></i> Admin Accounts
+        </a>
+        <a href="{{ url_for('super.platform') }}" class="sidebar-link {% if request.endpoint=='super.platform' %}active{% endif %}">
+            <i class="bi bi-globe"></i> Platform
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="sidebar-link {% if request.endpoint=='admin.logs' %}active{% endif %}">
+            <i class="bi bi-journal-text"></i> Logs
+        </a>
+
+        <div class="nav-section-title">Account</div>
+        <a href="{{ url_for('admin.profile') }}" class="sidebar-link">
+            <i class="bi bi-person-circle"></i> Profile
+        </a>
+        <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link">
+            <i class="bi bi-arrow-left-circle"></i> Admin Panel
+        </a>
+        <a href="{{ url_for('home.logout') }}" class="sidebar-link" style="color:rgba(192,57,43,0.8)">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="admin-chip">
+            <div class="avatar" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe)">{{ user.name[0].upper() if user.name else 'S' }}</div>
+            <div class="info">
+                <div class="name">{{ user.name or user.username }}</div>
+                <div class="role" style="color:var(--accent)">Super Admin</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<div class="main-content">
+    <header class="topbar">
+        <button class="topbar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+        <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+        <div class="topbar-actions">
+            <span id="liveClock" style="font-size:0.72rem;color:rgba(255,255,255,0.35);white-space:nowrap"></span>
+            <a href="{{ url_for('admin.profile') }}" class="topbar-btn" title="Profile">
+                <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff">
+                    {{ user.name[0].upper() if user.name else 'S' }}
+                </div>
+            </a>
+            <a href="{{ url_for('home.logout') }}" class="topbar-btn" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="padding:14px 28px 0">
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" data-auto-dismiss>
+            <i class="bi bi-{% if cat=='success' %}check-circle{% elif cat=='danger' %}x-circle{% else %}info-circle{% endif %}"></i>
+            {{ msg }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="page-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

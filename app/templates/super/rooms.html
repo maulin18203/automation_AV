@@ -1,0 +1,83 @@
+{% extends "super/super_base.html" %}
+{% block title %}Rooms{% endblock %}
+{% block page_title %}Room Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-house-add" style="color:#a29bfe;margin-right:8px"></i>Room Management</h1>
+    <p>Add, edit, and organize rooms in your smart home</p>
+</div>
+
+<!-- Add New Room -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-plus-circle" style="color:#a29bfe;margin-right:8px"></i>Add New Room</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('super.rooms') }}">
+            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:16px;align-items:flex-end">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Room Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Living Room, Bedroom 2, Kitchen" required>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Icon</label>
+                    <select name="icon" class="form-select">
+                        <option value="bi-house">🏠 House</option>
+                        <option value="bi-tv">📺 TV Room</option>
+                        <option value="bi-moon-stars">🌙 Bedroom</option>
+                        <option value="bi-cup-hot">☕ Kitchen</option>
+                        <option value="bi-droplet">💧 Bathroom</option>
+                        <option value="bi-car-front">🚗 Garage</option>
+                        <option value="bi-tree">🌳 Garden</option>
+                        <option value="bi-door-open">🚪 Entrance</option>
+                        <option value="bi-building">🏢 Office</option>
+                        <option value="bi-stars">✨ Other</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding:10px 24px;height:42px">
+                    <i class="bi bi-plus-lg"></i> Add Room
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rooms List -->
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>All Rooms</h2>
+        <span class="badge badge-purple">{{ rooms|length }} rooms</span>
+    </div>
+    <div class="section-card-body">
+        {% if rooms %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+            {% for room in rooms %}
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;text-align:center;position:relative">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,rgba(162,155,254,0.15),rgba(162,155,254,0.05));display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+                    <i class="{{ room.icon or 'bi-house' }}" style="font-size:1.6rem;color:#a29bfe"></i>
+                </div>
+                <div style="font-weight:700;font-size:1.05rem;margin-bottom:4px">{{ room.name }}</div>
+                <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:12px">
+                    {{ room.device_count }} device{{ 's' if room.device_count != 1 else '' }}
+                </div>
+                <div style="display:flex;gap:8px;justify-content:center">
+                    <span class="badge badge-gold" style="font-size:0.7rem">Order: {{ room.order }}</span>
+                    <form method="POST" action="{{ url_for('super.delete_room', room_id=room.id) }}" onsubmit="return confirm('Delete room {{room.name}}? Devices in this room will NOT be deleted.')" style="margin:0">
+                        <button type="submit" class="btn btn-sm" style="background:rgba(192,57,43,0.12);color:#e74c3c;border:1px solid rgba(192,57,43,0.2);padding:3px 10px;font-size:0.72rem">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:48px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-house" style="font-size:2.5rem;display:block;margin-bottom:12px"></i>
+            <p>No rooms configured. Add one above.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BrightHaven Smart Home — Control your devices, rooms, and schedules from anywhere.">
+    <title>{% block title %}Dashboard{% endblock %} — BrightHaven</title>
+    <link rel="preload" href="{{ url_for('static', filename='images/pr1.png') }}" as="image">
+    <link rel="icon" href="{{ url_for('static', filename='images/pr1.png') }}" type="image/png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}?v=1.0.{{ range(1, 999)|random }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Global Delay Loader -->
+<div id="global-loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">BRIGHTHAVEN</div>
+</div>
+<script>
+(function() {
+    const loader = document.getElementById('global-loader');
+    if (sessionStorage.getItem('bh_user_loader_shown')) {
+        if (loader) loader.style.display = 'none';
+    } else {
+        window.addEventListener('load', function() {
+            if (loader) {
+                loader.style.opacity = '0';
+                loader.style.visibility = 'hidden';
+                loader.remove();
+                sessionStorage.setItem('bh_user_loader_shown', 'true');
+            }
+        });
+    }
+})();
+</script>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="{{ url_for('user.dashboard') }}" class="sidebar-logo">
+            <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="Logo">
+            <div>
+                <div class="brand-name">BrightHaven</div>
+                <div class="brand-sub">Smart Home</div>
+            </div>
+        </a>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-title">Overview</div>
+        <a href="{{ url_for('user.dashboard') }}" class="sidebar-link {% if request.endpoint=='user.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{{ url_for('user.main_switch') }}" class="sidebar-link {% if request.endpoint=='user.main_switch' %}active{% endif %}">
+            <i class="bi bi-toggles"></i> Main Switch
+        </a>
+
+        <div class="nav-section-title">Rooms</div>
+        {% if rooms is not undefined %}
+            {% for room in rooms %}
+            {% set room_slug = room|lower|replace(' ', '-') %}
+            <a href="{{ url_for('user.dynamic_room', room_slug=room_slug) }}" class="sidebar-link {% if request.endpoint=='user.dynamic_room' and request.view_args.get('room_slug')==room_slug %}active{% endif %}">
+                <i class="bi bi-house"></i> {{ room }}
+            </a>
+            {% endfor %}
+        {% else %}
+            <!-- Fallback if rooms not passed -->
+            <a href="{{ url_for('user.dashboard') }}" class="sidebar-link"><i class="bi bi-house"></i> Rooms</a>
+        {% endif %}
+
+        <div class="nav-section-title">Account</div>
+        <a href="{{ url_for('user.notifications') }}" class="sidebar-link {% if request.endpoint=='user.notifications' %}active{% endif %}">
+            <i class="bi bi-bell"></i> Notifications
+        </a>
+        <a href="{{ url_for('user.profile') }}" class="sidebar-link {% if request.endpoint=='user.profile' %}active{% endif %}">
+            <i class="bi bi-person-circle"></i> Profile
+        </a>
+        <a href="{{ url_for('user.reset_credentials') }}" class="sidebar-link {% if request.endpoint=='user.reset_credentials' %}active{% endif %}">
+            <i class="bi bi-key"></i> Reset Password
+        </a>
+        <a href="{{ url_for('home.logout') }}" class="sidebar-link" style="color:rgba(192,57,43,0.8)">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-chip">
+            <div class="avatar">{{ user.name[0].upper() if user.name else 'U' }}</div>
+            <div class="info">
+                <div class="name">{{ user.name or user.username }}</div>
+                <div class="role">{{ user.role|capitalize if user.role else 'User' }}</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+    <header class="topbar">
+        <button class="topbar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+        <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+
+        <div class="topbar-search">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" placeholder="Search devices, rooms..." id="searchInput" autocomplete="off">
+            <div id="search-results-overlay" class="search-overlay"></div>
+        </div>
+
+        <div class="topbar-actions">
+            <!-- SSE connection indicator -->
+            <div style="display:flex;align-items:center;gap:4px;margin-right:4px">
+                <div class="sse-indicator disconnected" id="sseIndicator" title="Real-time connection"></div>
+                <span id="liveClock" style="font-size:0.72rem;color:rgba(255,255,255,0.35);white-space:nowrap"></span>
+            </div>
+            <a href="{{ url_for('user.notifications') }}" class="topbar-btn" title="Notifications">
+                <i class="bi bi-bell"></i>
+            </a>
+            <a href="{{ url_for('user.profile') }}" class="topbar-btn" title="Profile">
+                <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--gold));display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff">
+                    {{ user.name[0].upper() if user.name else 'U' }}
+                </div>
+            </a>
+            <a href="{{ url_for('home.logout') }}" class="topbar-btn" title="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="padding:14px 32px 0">
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" data-auto-dismiss>
+            <i class="bi bi-{% if cat=='success' %}check-circle{% elif cat=='danger' %}x-circle{% elif cat=='warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            {{ msg }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="page-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+// Search functionality
+const searchInput = document.getElementById('searchInput');
+const searchOverlay = document.getElementById('search-results-overlay');
+
+if (searchInput && searchOverlay) {
+    let debounce;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounce);
+        const q = this.value.trim();
+        if (q.length < 2) {
+            searchOverlay.style.display = 'none';
+            return;
+        }
+
+        debounce = setTimeout(() => {
+            fetch("{{ url_for('user.search') }}?query=" + encodeURIComponent(q), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(results => {
+                if (results.length > 0) {
+                    searchOverlay.innerHTML = results.map(res => `
+                        <a href="{{ url_for('user.search') }}?query=${encodeURIComponent(res)}" class="search-item">
+                            <i class="bi bi-arrow-right-short"></i> ${res}
+                        </a>
+                    `).join('');
+                    searchOverlay.style.display = 'block';
+                } else {
+                    searchOverlay.innerHTML = '<div class="search-item">No results found</div>';
+                    searchOverlay.style.display = 'block';
+                }
+            });
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchOverlay.contains(e.target)) {
+            searchOverlay.style.display = 'none';
+        }
+    });
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

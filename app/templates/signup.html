@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+{% block content %}
+
+<div class="auth-page" style="padding-top:120px;padding-bottom:60px">
+    <div class="glass-card auth-card" style="max-width:560px;padding:48px">
+        <div class="auth-logo">
+            <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="BrightHaven Logo">
+            <h1>Create Account</h1>
+            <p>Join BrightHaven and control your smart home</p>
+        </div>
+
+        {% for cat, msg in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ cat }}" data-auto-dismiss>
+            <i class="bi bi-{% if cat=='success' %}check-circle{% elif cat=='danger' %}x-circle{% else %}info-circle{% endif %}"></i>
+            {{ msg }}
+        </div>
+        {% endfor %}
+
+        <form id="signupForm">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="full_name" class="form-control" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="johndoe" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-control" placeholder="john@example.com" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" id="phone" class="form-control" placeholder="+91 98765 43210">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="pw-toggle-wrap">
+                        <input type="password" id="pw" class="form-control" placeholder="Min 8 chars" required>
+                        <button type="button" class="pw-toggle-btn" onclick="togglePwVis(this)"><i class="bi bi-eye"></i></button>
+                    </div>
+                    <div class="pw-strength"><div class="pw-strength-bar" id="pwStrength"></div></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="pw-toggle-wrap">
+                        <input type="password" id="cpw" class="form-control" placeholder="Repeat password" required>
+                        <button type="button" class="pw-toggle-btn" onclick="togglePwVis(this)"><i class="bi bi-eye"></i></button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="signupBtn" style="margin-top:8px">
+                <i class="bi bi-person-plus"></i> <span>Create Account</span>
+            </button>
+        </form>
+
+        <div class="auth-links">
+            Already have an account? <a href="{{ url_for('home.login') }}">Sign in</a>
+        </div>
+    </div>
+</div>
+
+<style>body { overflow: auto; }</style>
+
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDT_Qw-ew6sW47fLrPMInTwwwSLHBvLPao",
+      authDomain: "brighthaven-93fc1.firebaseapp.com",
+      projectId: "brighthaven-93fc1",
+      storageBucket: "brighthaven-93fc1.firebasestorage.app",
+      messagingSenderId: "588035080074",
+      appId: "1:588035080074:web:3e30b31dab428297fa1273"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const signupForm = document.getElementById('signupForm');
+    const signupBtn = document.getElementById('signupBtn');
+    
+    signupForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const pw = document.getElementById('pw').value;
+        const cpw = document.getElementById('cpw').value;
+        
+        if (pw !== cpw) {
+            alert('Passwords do not match!');
+            return;
+        }
+
+        const email = document.getElementById('email').value;
+        const fn = document.getElementById('full_name').value;
+        const un = document.getElementById('username').value;
+        const ph = document.getElementById('phone').value;
+        
+        const originalText = signupBtn.innerHTML;
+        signupBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span>Creating Account...</span>';
+        signupBtn.disabled = true;
+
+        try {
+            // 1. Create user in Firebase Auth
+            const userCredential = await auth.createUserWithEmailAndPassword(email, pw);
+            const user = userCredential.user;
+            
+            // Optional: Update Firebase Auth Profile
+            await user.updateProfile({ displayName: fn });
+
+            // 2. Sync profile to Flask/Firestore
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    uid: user.uid,
+                    email: email,
+                    full_name: fn,
+                    username: un,
+                    phone: ph
+                })
+            });
+            const data = await res.json();
+            
+            if(data.status === 'success') {
+                alert("Account created successfully! Please log in.");
+                auth.signOut(); // Ensure they log in through the proper flow
+                window.location.href = "{{ url_for('home.login') }}";
+            } else {
+                // If backend failed, delete the orphaned Firebase Auth account
+                user.delete(); 
+                alert("Registration Error: " + data.message);
+                signupBtn.innerHTML = originalText;
+                signupBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Signup failed: " + error.message);
+            signupBtn.innerHTML = originalText;
+            signupBtn.disabled = false;
+        }
+    });
+
+// Password strength meter
+document.getElementById('pw').addEventListener('input', function() {
+    const bar = document.getElementById('pwStrength');
+    const val = this.value;
+    let strength = 0;
+    if (val.length >= 8) strength++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) strength++;
+    if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) strength++;
+
+    bar.className = 'pw-strength-bar';
+    if (strength === 1) bar.classList.add('weak');
+    else if (strength === 2) bar.classList.add('medium');
+    else if (strength >= 3) bar.classList.add('strong');
+});
+
+// Toggle password visibility
+function togglePwVis(btn) {
+    const input = btn.previousElementSibling;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

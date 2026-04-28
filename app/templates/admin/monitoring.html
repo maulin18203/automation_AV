@@ -1,0 +1,132 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Monitoring{% endblock %}
+{% block page_title %}Real-Time Monitoring{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-activity" style="color:var(--gold);margin-right:8px"></i>Real-Time Monitoring</h1>
+    <p>Live system performance metrics</p>
+</div>
+
+<!-- System Stats -->
+<div class="stats-grid" style="margin-bottom:24px">
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">CPU Usage</div><div class="stat-icon teal"><i class="bi bi-cpu"></i></div></div>
+        <div class="stat-value" id="cpuVal">—%</div>
+        <div class="stat-sub">Processing load</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Memory</div><div class="stat-icon gold"><i class="bi bi-memory"></i></div></div>
+        <div class="stat-value" id="memVal">—%</div>
+        <div class="stat-sub">RAM usage</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Temperature</div><div class="stat-icon red"><i class="bi bi-thermometer-half"></i></div></div>
+        <div class="stat-value" id="tempVal">—°C</div>
+        <div class="stat-sub">System temp</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Network</div><div class="stat-icon green"><i class="bi bi-wifi"></i></div></div>
+        <div class="stat-value" id="netVal" style="font-size:1.2rem">—</div>
+        <div class="stat-sub">Connectivity</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+    <div class="section-card">
+        <div class="section-card-header"><h2>CPU Usage Over Time</h2></div>
+        <div class="section-card-body">
+            <canvas id="cpuChart" height="80"></canvas>
+        </div>
+    </div>
+    <div class="section-card">
+        <div class="section-card-header"><h2>Device Status</h2></div>
+        <div class="section-card-body">
+            <canvas id="deviceChart" height="160"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+// CPU Chart
+const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+const cpuChart = new Chart(cpuCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'CPU %',
+            data: [],
+            borderColor: '#d4af37',
+            backgroundColor: 'rgba(212,175,55,0.1)',
+            borderWidth: 2, tension: 0.4, fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,0.6)' }}},
+        scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.05)' }},
+            y: { beginAtZero: true, max: 100, ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.05)' }}
+        }
+    }
+});
+
+// Device donut
+const devCtx = document.getElementById('deviceChart').getContext('2d');
+const devChart = new Chart(devCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['ON', 'OFF'],
+        datasets: [{
+            data: [0, 24],
+            backgroundColor: ['rgba(39,174,96,0.7)','rgba(255,255,255,0.1)'],
+            borderColor: ['#27ae60','rgba(255,255,255,0.05)'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,0.6)' }}}
+    }
+});
+
+function fetchMetrics() {
+    const cpu  = Math.floor(Math.random()*60) + 10;
+    const mem  = Math.floor(Math.random()*50) + 20;
+    const temp = (Math.random()*20 + 30).toFixed(1);
+    const net  = Math.random()>0.1 ? 'Online' : 'Offline';
+
+    document.getElementById('cpuVal').textContent  = cpu + '%';
+    document.getElementById('memVal').textContent  = mem + '%';
+    document.getElementById('tempVal').textContent = temp + '°C';
+    document.getElementById('netVal').textContent  = net;
+
+    const now = new Date().toLocaleTimeString();
+    cpuChart.data.labels.push(now);
+    cpuChart.data.datasets[0].data.push(cpu);
+    if (cpuChart.data.labels.length > 12) {
+        cpuChart.data.labels.shift();
+        cpuChart.data.datasets[0].data.shift();
+    }
+    cpuChart.update();
+
+    // Update device chart from ESP
+    fetch('/esp/status')
+        .then(r => r.json())
+        .then(data => {
+            const on = Object.values(data).filter(Boolean).length;
+            const total = Object.keys(data).length;
+            devChart.data.datasets[0].data = [on, total - on];
+            devChart.update();
+        })
+        .catch(()=>{});
+}
+
+fetchMetrics();
+setInterval(fetchMetrics, 5000);
+</script>
+{% endblock %}

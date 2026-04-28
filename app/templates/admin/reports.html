@@ -1,0 +1,143 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-file-earmark-bar-graph" style="color:var(--gold);margin-right:8px"></i>Reports</h1>
+    <p>System analytics and data exports</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px">
+    <div class="section-card">
+        <div class="section-card-header"><h2>Generate Report</h2></div>
+        <div class="section-card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label">Report Type</label>
+                    <select name="report_type" class="form-select">
+                        <option value="usage">Usage Report</option>
+                        <option value="activity">Activity Report</option>
+                        <option value="users">User Report</option>
+                        <option value="system">System Report</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="start_date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary btn-w100">
+                    <i class="bi bi-download"></i> Generate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-header"><h2>Summary Stats</h2></div>
+        <div class="section-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center">
+                <div style="font-size:2rem;font-weight:700;color:var(--gold)">{{ users|length }}</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:4px">Total Users</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center">
+                <div style="font-size:2rem;font-weight:700;color:var(--teal-light)">{{ contacts|length }}</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:4px">Contact Messages</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center">
+                <div style="font-size:2rem;font-weight:700;color:#2ecc71">{{ logs|length }}</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:4px">Log Entries</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center">
+                <div style="font-size:2rem;font-weight:700;color:#e74c3c">24</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:4px">Total Devices</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hardware Definitions (Blynk Defines) -->
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;margin-bottom:20px">
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2>Hardware Definitions</h2>
+            <span style="font-size:0.8rem;color:rgba(255,255,255,0.4)">Blynk & MQTT</span>
+        </div>
+        <div class="section-card-body">
+            {% if boards %}
+            <div style="overflow-x:auto">
+            <table class="bh-table">
+                <thead><tr><th>Board</th><th>Blynk Token</th><th>MQTT</th></tr></thead>
+                <tbody>
+                    {% for b in boards %}
+                    <tr>
+                        <td style="font-weight:600;font-size:0.85rem">{{ b.name or 'Unnamed Board' }}</td>
+                        <td style="font-family:monospace;font-size:0.75rem;color:var(--gold)">{{ (b.get('blynk_token', '')|string)[:12] }}...</td>
+                        <td style="color:rgba(255,255,255,0.4);font-size:0.75rem">{{ b.get('mqtt_topic_prefix', 'N/A') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2>Room Summary</h2>
+            <span style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ rooms|length }} rooms</span>
+        </div>
+        <div class="section-card-body">
+            <div style="overflow-x:auto">
+            <table class="bh-table">
+                <thead><tr><th>Room</th><th>Devices</th></tr></thead>
+                <tbody>
+                    {% for room_name in rooms %}
+                    {% set count = devices.values()|selectattr('room', 'equalto', room_name)|list|length %}
+                    <tr>
+                        <td style="font-weight:600;font-size:0.85rem">{{ room_name }}</td>
+                        <td><span class="badge badge-purple">{{ count }} devs</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Submissions Table -->
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Contact Submissions</h2>
+        <span style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ contacts|length }} records</span>
+    </div>
+    <div class="section-card-body">
+        {% if contacts %}
+        <div style="overflow-x:auto">
+        <table class="bh-table">
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for c in contacts %}
+                <tr>
+                    <td style="color:rgba(255,255,255,0.3);font-size:0.78rem">{{ c.id }}</td>
+                    <td style="font-size:0.875rem">{{ c.username or '—' }}</td>
+                    <td style="font-size:0.8rem;color:rgba(255,255,255,0.5)">{{ c.email or '—' }}</td>
+                    <td>{% if c.subject %}<span class="badge badge-info">{{ c.subject }}</span>{% else %}—{% endif %}</td>
+                    <td style="font-size:0.82rem;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.message }}</td>
+                    <td style="font-size:0.78rem;color:rgba(255,255,255,0.4)">{{ c.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3)"><p>No contact submissions</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

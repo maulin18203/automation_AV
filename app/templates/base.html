@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BrightHaven — Premium Cloud IoT Smart Home Automation Platform. Control your devices from anywhere.">
+    <title>{% block title %}Home{% endblock %} — BrightHaven</title>
+    <!-- Preload critical assets -->
+    <link rel="preload" href="{{ url_for('static', filename='images/pr1.png') }}" as="image">
+    <link rel="icon" href="{{ url_for('static', filename='images/pr1.png') }}" type="image/png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Versioned CSS for cache busting -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v=1.0.{{ range(1, 999)|random }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Logo Loader -->
+<div id="logo-loader">
+    <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="BrightHaven">
+    <div class="loader-text">BRIGHTHAVEN</div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- Navbar -->
+<nav class="bh-navbar">
+    <a href="{{ url_for('home.login') }}" class="brand">
+        <img src="{{ url_for('static', filename='images/pr1.png') }}" alt="Logo">
+        <span>BrightHaven</span>
+    </a>
+    <div class="nav-links">
+        <a href="{{ url_for('home.login') }}" class="nav-link {% if request.endpoint=='home.login' %}active{% endif %}">Home</a>
+        <a href="{{ url_for('home.contact_us') }}" class="nav-link {% if request.endpoint=='home.contact_us' %}active{% endif %}">Contact</a>
+        <a href="{{ url_for('home.login') }}" class="btn-login">
+            <i class="bi bi-box-arrow-in-right"></i> Login
+        </a>
+    </div>
+</nav>
+
+<!-- Particles -->
+<div class="particles">
+    <script>
+    (function(){
+        const c = document.querySelector('.particles');
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random()*100+'%';
+            p.style.animationDuration = (5+Math.random()*10)+'s';
+            p.style.animationDelay = Math.random()*8+'s';
+            p.style.width = p.style.height = (2+Math.random()*4)+'px';
+            c.appendChild(p);
+        }
+    })();
+    </script>
+</div>
+
+{% block content %}{% endblock %}
+
+<!-- Footer -->
+<footer class="bh-footer">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px">
+        <div>
+            <div class="footer-brand">BrightHaven</div>
+            <p style="margin-top:8px">Premium Cloud IoT Smart Home Platform.<br>Control your home from anywhere in the world.</p>
+            <div class="social-links">
+                <a href="#"><i class="bi bi-github"></i></a>
+                <a href="#"><i class="bi bi-linkedin"></i></a>
+                <a href="#"><i class="bi bi-envelope"></i></a>
+            </div>
+        </div>
+        <div>
+            <div style="font-weight:600;margin-bottom:12px;font-size:0.85rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em">Quick Links</div>
+            <a href="{{ url_for('home.login') }}" style="display:block;margin-bottom:8px;font-size:0.85rem">Login</a>
+            <a href="{{ url_for('home.signup') }}" style="display:block;margin-bottom:8px;font-size:0.85rem">Sign Up</a>
+            <a href="{{ url_for('home.contact_us') }}" style="display:block;margin-bottom:8px;font-size:0.85rem">Contact Us</a>
+        </div>
+        <div>
+            <div style="font-weight:600;margin-bottom:12px;font-size:0.85rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em">Technology</div>
+            <p style="font-size:0.8rem;line-height:1.8">
+                Flask + Firebase<br>
+                MQTT over TLS<br>
+                ESP32 Edge Nodes<br>
+                Real-time SSE
+            </p>
+        </div>
+    </div>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center">
+        <p style="font-size:0.78rem">© 2026 BrightHaven — Designed by Maulin K Patel</p>
+    </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+(function() {
+    const loader = document.getElementById('logo-loader');
+    if (sessionStorage.getItem('bh_loader_shown')) {
+        if (loader) loader.style.display = 'none';
+    } else {
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (loader) loader.classList.add('hidden');
+                sessionStorage.setItem('bh_loader_shown', 'true');
+            }, 2600);
+        });
+    }
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

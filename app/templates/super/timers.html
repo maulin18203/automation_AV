@@ -1,0 +1,122 @@
+{% extends "super/super_base.html" %}
+{% block title %}Device Timers{% endblock %}
+{% block page_title %}Automated Timers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-alarm" style="color:#a29bfe;margin-right:8px"></i>Device Timers</h1>
+    <p>Set automated ON/OFF timers for devices (e.g. Turn OFF AC after 2 hours)</p>
+</div>
+
+<!-- Create Timer -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-plus-circle" style="color:#a29bfe;margin-right:8px"></i>Set New Timer</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('super.timers') }}">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:16px;align-items:flex-end">
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Select Device</label>
+                    <select name="device_id" class="form-select" required>
+                        <option value="">Choose a device...</option>
+                        {% for dev_id, dev in devices.items() %}
+                        <option value="{{ dev_id }}">{{ dev.name }} ({{ dev.room }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Action</label>
+                    <select name="action" class="form-select">
+                        <option value="off">Turn OFF</option>
+                        <option value="on">Turn ON</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label class="form-label">Duration</label>
+                    <select name="duration" class="form-select">
+                        <option value="15">15 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="60">1 Hour</option>
+                        <option value="120" selected>2 Hours</option>
+                        <option value="180">3 Hours</option>
+                        <option value="240">4 Hours</option>
+                        <option value="480">8 Hours</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding:10px 24px;height:42px">
+                    <i class="bi bi-play-fill"></i> Start Timer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-grid-2">
+    <!-- Active Timers -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2>Active Timers</h2>
+            <span class="badge badge-on">{{ active_timers|length }} running</span>
+        </div>
+        <div class="section-card-body">
+            {% if active_timers %}
+            <div style="display:grid;gap:12px">
+                {% for timer in active_timers %}
+                <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-left:3px solid #2ecc71;border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between">
+                    <div>
+                        <div style="font-weight:600;font-size:1.05rem;margin-bottom:4px">
+                            {{ timer.device_name }} <i class="bi bi-arrow-right"></i> <span style="color:{% if timer.action == 'on' %}#2ecc71{% else %}#e74c3c{% endif %};text-transform:uppercase">{{ timer.action }}</span>
+                        </div>
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">
+                            Started by {{ timer.created_by }} • Ends at {{ timer.end_time.strftime('%H:%M') if timer.end_time else 'Unknown' }}
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ url_for('super.cancel_timer', timer_id=timer.id) }}" style="margin:0">
+                        <button type="submit" class="btn btn-sm" style="background:rgba(192,57,43,0.15);color:#e74c3c;border:1px solid rgba(192,57,43,0.3)" title="Cancel Timer">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3)">
+                <i class="bi bi-alarm" style="font-size:2rem;display:block;margin-bottom:12px"></i>
+                <p>No active timers.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2>Recent History</h2>
+        </div>
+        <div class="section-card-body">
+            {% if completed_timers %}
+            <div class="schedule-timeline">
+                {% for timer in completed_timers[:10] %}
+                <div class="schedule-item">
+                    <div class="schedule-time">{{ timer.completed_at.strftime('%H:%M') if timer.completed_at else 'Done' }}</div>
+                    <div style="flex:1">
+                        <div class="schedule-device">
+                            {{ timer.device_name }} <i class="bi bi-arrow-right"></i> <span style="color:{% if timer.action == 'on' %}#2ecc71{% else %}#e74c3c{% endif %};text-transform:uppercase">{{ timer.action }}</span>
+                        </div>
+                        <div class="schedule-repeat">
+                            {{ timer.duration_minutes }} min • {{ timer.status|title }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3)">
+                <p>No timer history.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

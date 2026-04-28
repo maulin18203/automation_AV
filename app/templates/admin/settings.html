@@ -1,0 +1,97 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-gear" style="color:var(--gold);margin-right:8px"></i>System Settings</h1>
+    <p>Configure your BrightHaven system</p>
+</div>
+{% for cat, msg in get_flashed_messages(with_categories=true) %}
+<div class="alert alert-{{ cat }}" data-auto-dismiss>{{ msg }}</div>
+{% endfor %}
+<form method="POST" action="{{ url_for('admin.settings') }}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1000px">
+    <div class="section-card">
+        <div class="section-card-header"><h2><i class="bi bi-sliders" style="color:var(--gold);margin-right:8px"></i>General</h2></div>
+        <div class="section-card-body">
+            <div class="form-group">
+                <label class="form-label">System Name</label>
+                <input type="text" class="form-control" name="system_name" value="{{ settings.get('system_name','BrightHaven') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notification Level</label>
+                <select name="notification_level" class="form-select">
+                    <option value="all">All Notifications</option>
+                    <option value="important">Important Only</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">System Timezone</label>
+                <select name="timezone" class="form-select">
+                    <option value="Asia/Kolkata">India (IST)</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">US Eastern</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-header"><h2><i class="bi bi-shield-check" style="color:var(--gold);margin-right:8px"></i>Security</h2></div>
+        <div class="section-card-body">
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="maintenance_mode" id="mm"><label class="form-check-label" for="mm">Enable Maintenance Mode</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="two_factor" id="tf"><label class="form-check-label" for="tf">Two-Factor Authentication</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="enable_logging" id="el" checked><label class="form-check-label" for="el">Enable Detailed Logging</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="auto_logout" id="al"><label class="form-check-label" for="al">Auto Logout (30 min)</label></div>
+            <div class="form-group" style="margin-top:16px">
+                <label class="form-label">API Key</label>
+                <input type="text" class="form-control" name="api_key" value="{{ settings.get('api_key','') }}" placeholder="Blynk token or API key">
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-header"><h2><i class="bi bi-palette" style="color:var(--gold);margin-right:8px"></i>Appearance</h2></div>
+        <div class="section-card-body">
+            <div class="form-group">
+                <label class="form-label">Theme</label>
+                <select name="theme" class="form-select">
+                    <option value="dark" selected>Dark (Default)</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" name="font_size" value="14" min="12" max="20">
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-header"><h2><i class="bi bi-database" style="color:var(--gold);margin-right:8px"></i>Backup & Restore</h2></div>
+        <div class="section-card-body">
+            <p style="color:rgba(255,255,255,0.5);font-size:0.875rem;margin-bottom:16px">Download or restore system configuration backups.</p>
+            <a href="{{ url_for('admin.download_backup') }}" class="btn btn-secondary" style="width:100%;margin-bottom:10px"><i class="bi bi-download"></i> Download Backup</a>
+            
+            <hr style="border:0;border-top:1px solid rgba(255,255,255,0.1);margin:20px 0">
+            
+            <form method="POST" action="{{ url_for('admin.restore_backup') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Upload Backup File</label>
+                    <input type="file" class="form-control" name="backup_file" required>
+                </div>
+                <button type="submit" class="btn btn-secondary" style="width:100%" onclick="return confirm('Restore backup? This will override current settings.')">
+                    <i class="bi bi-upload"></i> Restore Backup
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<div style="margin-top:20px;max-width:1000px">
+    <button type="submit" class="btn btn-primary" style="width:auto;padding:14px 40px;font-size:1rem">
+        <i class="bi bi-check2-circle"></i> Save All Settings
+    </button>
+</div>
+</form>
+{% endblock %}

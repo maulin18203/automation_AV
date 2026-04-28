@@ -1,0 +1,125 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Scenes{% endblock %}
+{% block page_title %}Scenes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-magic" style="color:var(--gold);margin-right:8px"></i>Scene Manager</h1>
+    <p>Create and manage preset device configurations</p>
+</div>
+
+<!-- Create Scene -->
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-plus-circle" style="color:var(--gold);margin-right:8px"></i>Create New Scene</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="{{ url_for('admin.create_scene') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Scene Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Movie Night, Sleep Mode" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Icon</label>
+                    <select name="icon" class="form-select">
+                        <option value="bi-magic">✨ Magic</option>
+                        <option value="bi-moon-stars">🌙 Sleep Mode</option>
+                        <option value="bi-film">🎬 Movie Mode</option>
+                        <option value="bi-sun">☀️ Morning</option>
+                        <option value="bi-house-door">🏠 Away Mode</option>
+                        <option value="bi-cup-hot">☕ Cooking</option>
+                        <option value="bi-book">📖 Reading</option>
+                        <option value="bi-music-note-beamed">🎵 Party</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Device Actions</label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+                    {% for dev_id, dev in devices.items() %}
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+                        <input type="checkbox" name="devices" value="{{ dev_id }}" style="accent-color:var(--gold);width:16px;height:16px">
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:0.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                <i class="{{ dev.icon }}" style="color:var(--gold);margin-right:4px"></i>{{ dev.name }}
+                            </div>
+                            <div style="font-size:0.7rem;color:var(--text-muted)">{{ dev.room }}</div>
+                        </div>
+                        <select name="states" style="padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:0.75rem">
+                            <option value="on">ON</option>
+                            <option value="off">OFF</option>
+                        </select>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px">
+                <i class="bi bi-plus-lg"></i> Create Scene
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Existing Scenes -->
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Saved Scenes</h2>
+        <span class="badge badge-gold">{{ scenes|selectattr('name')|list|length }} scenes</span>
+    </div>
+    <div class="section-card-body">
+        {% set real_scenes = scenes|selectattr('name')|list %}
+        {% if real_scenes %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+            {% for scene in real_scenes %}
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;transition:all 0.2s">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                    <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,rgba(65,108,111,0.3),rgba(212,175,55,0.2));display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--gold)">
+                        <i class="{{ scene.icon or 'bi-magic' }}"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:0.95rem;font-weight:600">{{ scene.name }}</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">{{ scene.actions|length if scene.actions else 0 }} devices</div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">
+                    {% for action in (scene.actions or [])[:4] %}
+                    <span class="badge {% if action.state %}badge-on{% else %}badge-off{% endif %}">
+                        {{ action.device }}
+                    </span>
+                    {% endfor %}
+                    {% if (scene.actions or [])|length > 4 %}
+                    <span class="badge badge-gold">+{{ (scene.actions|length) - 4 }} more</span>
+                    {% endif %}
+                </div>
+                <button onclick="activateScene('{{ scene.id }}', '{{ scene.name }}')" class="btn btn-sm btn-secondary" style="width:100%">
+                    <i class="bi bi-play-fill"></i> Activate
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:48px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-magic" style="font-size:2.5rem;display:block;margin-bottom:12px"></i>
+            <p style="font-size:1rem">No scenes created yet</p>
+            <p style="font-size:0.85rem;margin-top:4px">Create your first scene above to quickly control multiple devices at once</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function activateScene(sceneId, sceneName) {
+    fetch('/user/api/scene/activate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({scene_id: sceneId})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) showToast(`Scene "${sceneName}" activated!`, 'success');
+        else showToast('Failed to activate scene', 'error');
+    });
+}
+</script>
+{% endblock %}

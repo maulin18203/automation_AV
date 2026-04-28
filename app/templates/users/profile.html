@@ -1,0 +1,120 @@
+{% extends "users/user_base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-person-circle" style="color:var(--gold);margin-right:8px"></i>My Profile</h1>
+    <p>Manage your account information</p>
+</div>
+
+<!-- FIXED: Using .profile-grid class for responsive layout (stacks on mobile) -->
+<div class="profile-grid">
+    <!-- Profile Card -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2>Profile Information</h2>
+        </div>
+        <div class="section-card-body">
+            <div class="profile-header">
+                <div class="profile-avatar">{{ (profile.get('full_name') or profile.get('username') or 'U')[0].upper() }}</div>
+                <div class="profile-info">
+                    <h2>{{ profile.get('full_name') or profile.get('username') or 'User' }}</h2>
+                    <p>{{ profile.get('email') or 'No email set' }}</p>
+                    <span class="badge badge-gold" style="margin-top:6px">User Account</span>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('user.profile') }}">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" value="{{ profile.full_name or '' }}" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" value="{{ profile.email or '' }}" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" name="phone" class="form-control" value="{{ profile.phone or '' }}" placeholder="+91 98765 43210">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <!-- FIXED: Uses CSS :disabled styling instead of inline opacity hack -->
+                    <input type="text" class="form-control" value="{{ profile.username }}" disabled>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px">
+                    <i class="bi bi-check2"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+        <!-- Account Details -->
+        <div class="section-card" style="margin-bottom:16px">
+            <div class="section-card-header"><h2>Account Details</h2></div>
+            <div class="section-card-body">
+                <div style="display:grid;gap:14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                        <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Member Since</span>
+                        <span style="font-size:0.85rem;font-weight:500">{{ profile.created_at.strftime('%b %d, %Y') if profile.created_at else 'N/A' }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                        <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Account Type</span>
+                        <span class="badge badge-gold">User</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                        <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Status</span>
+                        <span class="badge badge-on"><i class="bi bi-circle-fill" style="font-size:0.5rem"></i> Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Preferences -->
+        <div class="section-card" style="margin-bottom:16px">
+            <div class="section-card-header"><h2>Notifications</h2></div>
+            <div class="section-card-body" style="display:grid;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+                    <div>
+                        <div style="font-size:0.85rem;font-weight:500">Device Alerts</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">When a device goes offline</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,0.06)">
+                    <div>
+                        <div style="font-size:0.85rem;font-weight:500">System Updates</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Platform maintenance notices</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section-card">
+            <div class="section-card-header"><h2>Quick Actions</h2></div>
+            <div class="section-card-body" style="display:grid;gap:10px">
+                <a href="{{ url_for('user.reset_credentials') }}" class="btn btn-secondary" style="width:100%">
+                    <i class="bi bi-key"></i> Change Password
+                </a>
+                <a href="{{ url_for('home.contact_us') }}" class="btn btn-secondary" style="width:100%">
+                    <i class="bi bi-headset"></i> Contact Support
+                </a>
+                <a href="{{ url_for('home.logout') }}" class="btn btn-danger" style="width:100%">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

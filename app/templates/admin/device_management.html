@@ -1,0 +1,96 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Device Management{% endblock %}
+{% block page_title %}Device Management{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-hdd-network" style="color:var(--gold);margin-right:8px"></i>Device Management</h1>
+    <p>Monitor and control all connected smart devices</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid" style="margin-bottom:24px">
+    {% set on_devs = devices.values()|selectattr('state')|list|length %}
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Total Devices</div><div class="stat-icon teal"><i class="bi bi-hdd-network"></i></div></div>
+        <div class="stat-value">{{ devices|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Devices ON</div><div class="stat-icon gold"><i class="bi bi-lightning-charge"></i></div></div>
+        <div class="stat-value">{{ on_devs }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Devices OFF</div><div class="stat-icon red"><i class="bi bi-power"></i></div></div>
+        <div class="stat-value">{{ devices|length - on_devs }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Rooms</div><div class="stat-icon green"><i class="bi bi-house"></i></div></div>
+        <div class="stat-value">{{ rooms|length }}</div>
+    </div>
+</div>
+
+<!-- By Room -->
+{% for room in rooms %}
+{% set room_devices = devices.items()|selectattr('1.room', 'equalto', room)|list %}
+{% if room_devices %}
+<div class="section-card" style="margin-bottom:20px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-house" style="margin-right:8px;color:var(--gold)"></i>{{ room }}</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-right:12px">{{ room_devices|selectattr('1.state')|list|length }} / {{ room_devices|length }} ON</span>
+            <button onclick="roomToggle('{{ room }}', true)" class="btn btn-sm" style="background:rgba(39,174,96,0.1);color:#2ecc71;border:1px solid rgba(39,174,96,0.2);padding:4px 10px;font-size:0.7rem">
+                <i class="bi bi-lightning-fill"></i> ALL ON
+            </button>
+            <button onclick="roomToggle('{{ room }}', false)" class="btn btn-sm" style="background:rgba(192,57,43,0.1);color:#e74c3c;border:1px solid rgba(192,57,43,0.2);padding:4px 10px;font-size:0.7rem">
+                <i class="bi bi-power"></i> ALL OFF
+            </button>
+        </div>
+    </div>
+    <div class="section-card-body">
+        <div class="devices-grid">
+            {% for dev_id, dev in room_devices %}
+            <div class="device-card {% if dev.state %}device-on{% endif %}">
+                <div class="device-icon"><i class="{{ dev.icon }}" style="font-size:1.5rem"></i></div>
+                <div class="device-name">{{ dev.name }}</div>
+                <div class="device-room">Pin: {{ dev.pin }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+                    <span class="badge {% if dev.state %}badge-on{% else %}badge-off{% endif %}">{{ 'ON' if dev.state else 'OFF' }}</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" {% if dev.state %}checked{% endif %}
+                               onchange="adminToggle(this,'{{ dev_id }}','{{ dev.name }}')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<script>
+function adminToggle(el, devId, devName) {
+    const state = el.checked;
+    exclusiveFetch('/user/api/toggle', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({device:devId, state:state}),
+        channel: 'toggle_' + devId
+    }).then(r=>r.json()).then(d=>{
+        showToast(devName + ' ' + (state?'ON':'OFF'), state?'success':'info');
+    });
+}
+
+function roomToggle(room, state) {
+    exclusiveFetch('/user/api/toggle-room', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({room: room, state: state}),
+        channel: 'toggle_room_' + room
+    }).then(r=>r.json()).then(d=>{
+        if(d.ok) {
+            showToast(`All devices in ${room} turned ${state?'ON':'OFF'}`, state?'success':'info');
+            setTimeout(()=>location.reload(), 800);
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+    <div>
+        <h1><i class="bi bi-people" style="color:var(--gold);margin-right:8px"></i>User Management</h1>
+        <p>{{ users|length }} registered user(s) in the system</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('createUserModal')">
+        <i class="bi bi-person-plus"></i> Add User
+    </button>
+</div>
+
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>All Users</h2>
+    </div>
+    <div class="section-card-body">
+        {% if users %}
+        <table class="bh-table">
+            <thead>
+                <tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--teal),var(--gold));display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;flex-shrink:0">
+                                {{ (u.full_name or u.username)[0].upper() }}
+                            </div>
+                            <div>
+                                <div style="font-size:0.875rem;font-weight:500">{{ u.full_name or u.username }}</div>
+                                <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-size:0.85rem;color:rgba(255,255,255,0.6)">{{ u.email or '—' }}</td>
+                    <td>
+                        <span class="badge {% if u.get('role', 'user') == 'super_admin' %}badge-gold{% elif u.get('role', 'user') == 'admin' %}badge-teal{% else %}badge-off{% endif %}" style="text-transform:uppercase; font-size:0.65rem;">
+                            {{ u.get('role', 'user').replace('_', ' ') }}
+                        </span>
+                    </td>
+                    <td style="font-size:0.8rem;color:rgba(255,255,255,0.4)">{{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}</td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-sm" style="background:rgba(255,255,255,0.1); border:none;" title="View Info" onclick="viewInfo('{{ u.id }}', '{{ u.full_name }}', '{{ u.username }}', '{{ u.email }}', '{{ u.role }}', '{{ u.created_at }}', '{{ u.suspended }}')">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm" style="background:rgba(255,255,255,0.1); border:none;" title="Edit Profile" onclick="editUser('{{ u.id }}', '{{ u.full_name }}', '{{ u.username }}', '{{ u.role }}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm" style="background:rgba(255,255,255,0.1); border:none;" title="Change Password" onclick="changePassword('{{ u.id }}', '{{ u.username }}')">
+                                <i class="bi bi-key"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('admin.delete_user', uid=u.id) }}" style="display:inline" onsubmit="return confirm('WARNING: This completely deletes user {{ u.username }} from the database and Firebase Auth. Continue?')">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-people" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+            <p>No users registered yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Custom Modal Styles -->
+<style>
+.custom-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center; z-index: 9999;
+}
+.custom-modal {
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; width: 100%; max-width: 450px; padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+.custom-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+}
+.custom-modal-header h3 { margin: 0; font-size: 1.25rem; }
+.close-btn { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.5rem; cursor: pointer; }
+.close-btn:hover { color: #fff; }
+</style>
+
+<!-- CREATE USER MODAL -->
+<div class="custom-modal-overlay" id="createUserModal">
+    <div class="custom-modal">
+        <div class="custom-modal-header">
+            <h3><i class="bi bi-person-plus" style="color:var(--gold);margin-right:8px;"></i>Add New User</h3>
+            <button class="close-btn" onclick="closeModal('createUserModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.create_user') }}">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="text" name="password" class="form-control" placeholder="Min 6 characters" minlength="6" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="full_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Initial Role</label>
+                <select name="role" class="form-select">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT USER MODAL -->
+<div class="custom-modal-overlay" id="editUserModal">
+    <div class="custom-modal">
+        <div class="custom-modal-header">
+            <h3><i class="bi bi-pencil" style="color:var(--gold);margin-right:8px;"></i>Edit User</h3>
+            <button class="close-btn" onclick="closeModal('editUserModal')">&times;</button>
+        </div>
+        <form method="POST" id="editUserForm" action="">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="full_name" id="edit_fullname" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" id="edit_username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select name="role" id="edit_role" class="form-select">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px;">Update Profile</button>
+        </form>
+    </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="custom-modal-overlay" id="changePwModal">
+    <div class="custom-modal">
+        <div class="custom-modal-header">
+            <h3><i class="bi bi-key" style="color:var(--gold);margin-right:8px;"></i>Force Password Change</h3>
+            <button class="close-btn" onclick="closeModal('changePwModal')">&times;</button>
+        </div>
+        <form method="POST" id="changePwForm" action="">
+            <p style="font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:16px;">
+                WARNING: Overwriting the password for <strong id="pw_target" style="color:#fff;"></strong> will immediately invalidate their current login session via the Firebase Admin SDK.
+            </p>
+            <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="text" name="password" class="form-control" minlength="6" placeholder="Min 6 characters" required>
+            </div>
+            <button type="submit" class="btn btn-danger" style="width:100%; padding:12px;">Override Password</button>
+        </form>
+    </div>
+</div>
+
+<!-- VIEW INFO MODAL -->
+<div class="custom-modal-overlay" id="viewInfoModal">
+    <div class="custom-modal">
+        <div class="custom-modal-header">
+            <h3><i class="bi bi-info-circle" style="color:var(--gold);margin-right:8px;"></i>System Info</h3>
+            <button class="close-btn" onclick="closeModal('viewInfoModal')">&times;</button>
+        </div>
+        <div style="font-size:0.9rem; line-height:1.8;">
+            <p><strong>Database UID:</strong> <span id="info_uid" style="color:var(--gold); font-family:monospace;"></span></p>
+            <p><strong>Name:</strong> <span id="info_name"></span></p>
+            <p><strong>Username:</strong> <span id="info_username"></span></p>
+            <p><strong>Email:</strong> <span id="info_email"></span></p>
+            <p><strong>Privilege Level:</strong> <span id="info_role" style="text-transform:uppercase;"></span></p>
+            <p><strong>Account Status:</strong> <span id="info_status"></span></p>
+            <p><strong>Join Date:</strong> <span id="info_joined"></span></p>
+        </div>
+        <button class="btn btn-secondary" style="width:100%; margin-top:20px;" onclick="closeModal('viewInfoModal')">Close</button>
+    </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function editUser(uid, fullName, username, role) {
+    document.getElementById('edit_fullname').value = fullName;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_role').value = role;
+    document.getElementById('editUserForm').action = "/admin/users/edit/" + uid;
+    openModal('editUserModal');
+}
+
+function changePassword(uid, username) {
+    document.getElementById('pw_target').textContent = "@" + username;
+    document.getElementById('changePwForm').action = "/admin/users/password/" + uid;
+    openModal('changePwModal');
+}
+
+function viewInfo(uid, name, user, email, role, joined, suspended) {
+    document.getElementById('info_uid').textContent = uid;
+    document.getElementById('info_name').textContent = name;
+    document.getElementById('info_username').textContent = user;
+    document.getElementById('info_email').textContent = email;
+    document.getElementById('info_role').textContent = role.replace('_', ' ');
+    document.getElementById('info_status').textContent = (suspended === 'True' || suspended === 'true') ? 'Suspended' : 'Active';
+    
+    // Clean up dates avoiding regex
+    document.getElementById('info_joined').textContent = joined ? joined.split(' ')[0] : 'Unknown';
+    openModal('viewInfoModal');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Privacy & Terms{% endblock %}
+{% block page_title %}Privacy & Terms{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-shield-check" style="color:var(--gold);margin-right:8px"></i>Privacy & Terms</h1>
+    <p>Legal information and data policies</p>
+</div>
+<div style="max-width:860px;display:grid;gap:20px">
+    <div class="section-card">
+        <div class="section-card-header"><h2>Privacy Policy</h2></div>
+        <div class="section-card-body" style="color:rgba(255,255,255,0.7);font-size:0.9rem;line-height:1.8;display:grid;gap:16px">
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Information Collection</h3>
+                <p>We collect personal information including your name, email address, and usage data to improve our services and provide a better experience with BrightHaven smart home automation.</p>
+            </div>
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Use of Information</h3>
+                <p>Collected information is used to operate, maintain, and improve our service, including analytics and system optimization. We never sell personal information to third parties.</p>
+            </div>
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Data Security</h3>
+                <p>We implement multiple layers of security including encryption, hashed passwords, and secure sessions to protect your personal information at all times.</p>
+            </div>
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Third-Party Sharing</h3>
+                <p>Data may be shared with trusted infrastructure partners (e.g., cloud providers) only as necessary to operate the service, under strict confidentiality agreements.</p>
+            </div>
+        </div>
+    </div>
+    <div class="section-card">
+        <div class="section-card-header"><h2>Terms of Service</h2></div>
+        <div class="section-card-body" style="color:rgba(255,255,255,0.7);font-size:0.9rem;line-height:1.8;display:grid;gap:16px">
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Acceptance of Terms</h3>
+                <p>By accessing or using BrightHaven, you agree to be bound by these terms. If you do not agree, you must not use our service.</p>
+            </div>
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Usage Guidelines</h3>
+                <p>You agree to use our service only for lawful purposes and in a manner that does not infringe on the rights of others or interfere with system operations.</p>
+            </div>
+            <div>
+                <h3 style="color:var(--gold);font-size:0.95rem;margin-bottom:6px">Limitation of Liability</h3>
+                <p>BrightHaven is provided on an "as is" basis. We are not liable for any damages arising from your use of our service, including IoT device malfunctions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="section-card">
+        <div class="section-card-header"><h2>Contact</h2></div>
+        <div class="section-card-body">
+            <p style="color:rgba(255,255,255,0.6);font-size:0.9rem">Questions about our Privacy Policy or Terms of Service?</p>
+            <a href="{{ url_for('home.contact_us') }}" class="btn btn-primary" style="width:auto;margin-top:16px;padding:12px 28px">
+                <i class="bi bi-envelope"></i> Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

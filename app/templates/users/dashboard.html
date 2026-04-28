@@ -1,0 +1,167 @@
+{% extends "users/user_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-speedometer2" style="color:var(--gold);margin-right:8px"></i>Dashboard</h1>
+    <p>Welcome back, <strong>{{ user.name or user.username }}</strong> — Here's your home overview</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="bi bi-house-door"></i></div>
+        <div class="stat-info">
+            <div class="value">{{ rooms|length }}</div>
+            <div class="label">Rooms</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="bi bi-hdd-network"></i></div>
+        <div class="stat-info">
+            <div class="value">{{ total }}</div>
+            <div class="label">Total Devices</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="bi bi-lightning-charge"></i></div>
+        <div class="stat-info">
+            <div class="value" id="onCountStat">{{ on_count }}</div>
+            <div class="label">Devices ON</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="bi bi-power"></i></div>
+        <div class="stat-info">
+            <div class="value">{{ total - on_count }}</div>
+            <div class="label">Devices OFF</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Scenes -->
+{% if scenes %}
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2><i class="bi bi-magic" style="color:var(--gold);margin-right:8px"></i>Quick Scenes</h2>
+    </div>
+    <div class="section-card-body">
+        <div class="scenes-grid">
+            {% for scene in scenes %}
+            {% if not scene.get('_init') %}
+            <div class="scene-card" onclick="activateScene('{{ scene.id }}', '{{ scene.name }}')"
+                title="Activate {{ scene.name }}">
+                <div class="scene-icon"><i class="{{ scene.icon or 'bi-magic' }}"></i></div>
+                <div class="scene-name">{{ scene.name }}</div>
+                <div class="scene-desc">{{ scene.actions|length if scene.actions else 0 }} devices</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="rooms-grid">
+    {% for room_name in rooms %}
+    {% set room_slug = room_name.lower().replace(' ', '-') %}
+    <a href="{{ url_for('user.dynamic_room', room_slug=room_slug) }}" class="room-card" id="room_card_{{ loop.index }}">
+        <div class="room-card-header">
+            <div class="room-icon">
+                <i class="bi bi-house-door"></i>
+            </div>
+            <div>
+                <div class="room-name">{{ room_name }}</div>
+                <div class="room-count" id="room_count_{{ loop.index }}">Loading...</div>
+            </div>
+        </div>
+        <div class="room-card-footer">
+            <div class="room-devices-preview" id="room_preview_{{ loop.index }}">
+                <!-- Live status indicators -->
+            </div>
+            <span class="room-go-btn">Manage <i class="bi bi-arrow-right"></i></span>
+        </div>
+    </a>
+    {% endfor %}
+    
+    {% if user.role in ['admin', 'super_admin'] %}
+    <a href="{{ url_for('super.rooms') if user.role == 'super_admin' else url_for('admin.settings') }}" class="room-card" style="border:2px dashed rgba(255,255,255,0.1);background:transparent;display:flex;align-items:center;justify-content:center;text-align:center">
+        <div style="padding:20px">
+            <i class="bi bi-plus-circle" style="font-size:2rem;color:var(--gold);display:block;margin-bottom:8px"></i>
+            <div style="font-weight:600;color:var(--gold)">Add New Room</div>
+        </div>
+    </a>
+    {% endif %}
+</div>
+
+<script id="room_names_data" type="application/json">
+    {{ rooms|tojson|safe }}
+</script>
+
+<script>
+    // Populate room cards with live device counts
+    const ROOM_NAMES = JSON.parse(document.getElementById('room_names_data').textContent);
+    const DEVICE_ROOMS = {
+        {% for dev_id, dev in all_devices.items() %}
+        '{{ dev_id }}': '{{ dev.room }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function updateRoomCards() {
+        exclusiveFetch('/user/api/status')
+            .then(r => r.json())
+            .then(data => {
+                let totalOn = 0;
+                ROOM_NAMES.forEach((room, idx) => {
+                    const roomDevices = Object.entries(data).filter(([k, v]) => DEVICE_ROOMS[k] === room);
+                    const onCount = roomDevices.filter(([k, v]) => v).length;
+                    const total = roomDevices.length;
+                    totalOn += onCount;
+
+                    const countEl = document.getElementById('room_count_' + (idx + 1));
+                    if (countEl) countEl.textContent = `${onCount} of ${total} devices ON`;
+
+                    // Room card active state
+                    const card = document.getElementById('room_card_' + (idx + 1));
+                    if (card) {
+                        if (onCount > 0) {
+                            card.style.borderColor = 'rgba(39,174,96,0.3)';
+                            card.style.background = 'rgba(39,174,96,0.04)';
+                        } else {
+                            card.style.borderColor = '';
+                            card.style.background = '';
+                        }
+                    }
+                });
+
+
+                // Update header stat
+                const onStat = document.getElementById('onCountStat');
+                if (onStat) onStat.textContent = totalOn;
+            });
+    }
+
+    // Initial + poll
+    updateRoomCards();
+    setInterval(updateRoomCards, 8000);
+
+    // Scene activation
+    function activateScene(sceneId, sceneName) {
+        exclusiveFetch('/user/api/scene/activate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scene_id: sceneId })
+        })
+            .then(r => r.json())
+            .then(d => {
+                if (d.ok) {
+                    showToast(`Scene "${sceneName}" activated!`, 'success');
+                    setTimeout(updateRoomCards, 1000);
+                } else {
+                    showToast('Failed to activate scene', 'error');
+                }
+            });
+    }
+</script>
+{% endblock %}

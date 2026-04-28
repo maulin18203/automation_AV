@@ -1,0 +1,164 @@
+{% extends "users/user_base.html" %}
+{% block title %}{{ room_name }}{% endblock %}
+{% block page_title %}{{ room_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="{{ room_icon }}" style="color:var(--gold);margin-right:8px"></i>{{ room_name }}</h1>
+    <p>Control all devices in {{ room_name }}</p>
+</div>
+
+<div class="section-card" style="margin-bottom:24px">
+    <div class="section-card-header">
+        <h2>Room Controls</h2>
+        <div style="display:flex;gap:10px;align-items:center">
+            <span id="onCount" style="font-size:0.8rem;color:rgba(255,255,255,0.5)">
+                {{ devices.values()|selectattr('state')|list|length }} of {{ devices|length }} ON
+            </span>
+            <button onclick="roomToggle('{{ room_name }}', true)" class="btn btn-sm" style="background:rgba(39,174,96,0.18);color:#2ecc71;border:1px solid rgba(39,174,96,0.3)">
+                <i class="bi bi-power"></i> All ON
+            </button>
+            <button onclick="roomToggle('{{ room_name }}', false)" class="btn btn-sm" style="background:rgba(192,57,43,0.18);color:#e74c3c;border:1px solid rgba(192,57,43,0.3)">
+                <i class="bi bi-power"></i> All OFF
+            </button>
+        </div>
+    </div>
+</div>
+
+{% if devices %}
+<div class="devices-grid">
+    {% for dev_id, dev in devices.items() %}
+    <div class="device-card {% if dev.state %}device-on{% endif %}" data-device-id="{{ dev_id }}" id="card_{{ dev_id }}">
+        <div class="device-icon">
+            <i class="{{ dev.icon }}" style="font-size:1.8rem"></i>
+        </div>
+        <div class="device-name">{{ dev.name }}</div>
+        <div class="device-room">{{ dev.room }}</div>
+        <span id="status_{{ dev_id }}" class="device-status">{{ 'ON' if dev.state else 'OFF' }}</span>
+        <div class="toggle-wrap">
+            <span class="toggle-label">{{ 'Active' if dev.state else 'Inactive' }}</span>
+            <label class="toggle-switch">
+                <input type="checkbox" 
+                       data-device="{{ dev_id }}"
+                       {% if dev.state %}checked{% endif %}
+                       onchange="onDeviceToggle(this, '{{ dev_id }}', '{{ dev.name }}')">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+    <i class="bi bi-hdd-network" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+    <p>No devices found for this room.</p>
+</div>
+{% endif %}
+
+<script>
+// Helper function to update the "X of Y ON" text dynamically
+function updateOnCount() {
+    const totalDevices = document.querySelectorAll('[data-device]').length;
+    const onDevices = document.querySelectorAll('[data-device]:checked').length;
+    const countEl = document.getElementById('onCount');
+    if (countEl) {
+        countEl.textContent = `${onDevices} of ${totalDevices} ON`;
+    }
+}
+
+function onDeviceToggle(el, devId, devName) {
+    const state = el.checked;
+    const card  = document.getElementById('card_' + devId);
+    const statusEl = document.getElementById('status_' + devId);
+
+    // Optimistic UI updates
+    if (state) { card.classList.add('device-on'); }
+    else        { card.classList.remove('device-on'); }
+    if (statusEl) statusEl.textContent = state ? 'ON' : 'OFF';
+    
+    // Update the counter dynamically immediately
+    updateOnCount(); 
+
+    exclusiveFetch('/user/api/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device: devId, state: state}),
+        channel: 'toggle_' + devId
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.ok) {
+            // Revert UI on server failure
+            el.checked = !state;
+            if (!state) { card.classList.add('device-on'); }
+            else        { card.classList.remove('device-on'); }
+            if (statusEl) statusEl.textContent = !state ? 'ON' : 'OFF';
+            updateOnCount(); // Revert the counter
+            showToast('Failed to toggle ' + devName, 'error');
+        } else {
+            showToast(devName + ' turned ' + (state ? 'ON' : 'OFF'), state ? 'success' : 'info');
+        }
+    })
+    .catch(err => {
+        console.error("Network error:", err);
+        // Fallback revert on hard network error (e.g. Pi lost WiFi)
+        el.checked = !state;
+        if (!state) { card.classList.add('device-on'); }
+        else        { card.classList.remove('device-on'); }
+        if (statusEl) statusEl.textContent = !state ? 'ON' : 'OFF';
+        updateOnCount();
+        showToast('Network error, please try again.', 'error');
+    });
+}
+
+function roomToggle(room, state) {
+    exclusiveFetch('/user/api/toggle-room', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: room, state: state})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            // Update all toggles and cards locally
+            document.querySelectorAll('[data-device]').forEach(el => {
+                el.checked = state;
+                const card = document.getElementById('card_' + el.dataset.device);
+                const statusEl = document.getElementById('status_' + el.dataset.device);
+                if (card) { state ? card.classList.add('device-on') : card.classList.remove('device-on'); }
+                if (statusEl) statusEl.textContent = state ? 'ON' : 'OFF';
+            });
+            updateOnCount(); // Update the counter dynamically
+            showToast(`All ${room} devices turned ${state ? 'ON' : 'OFF'}`, state ? 'success' : 'info');
+        }
+    });
+}
+
+// Poll status every 8 seconds to stay in sync with hardware
+setInterval(() => {
+    exclusiveFetch('/user/api/status')
+        .then(r => r.json())
+        .then(data => {
+            let stateChanged = false;
+            document.querySelectorAll('[data-device]').forEach(el => {
+                const devId = el.dataset.device;
+                if (devId in data) {
+                    const isOn = data[devId];
+                    if (el.checked !== isOn) {
+                        el.checked = isOn;
+                        const card = document.getElementById('card_' + devId);
+                        const statusEl = document.getElementById('status_' + devId);
+                        if (card) { isOn ? card.classList.add('device-on') : card.classList.remove('device-on'); }
+                        if (statusEl) statusEl.textContent = isOn ? 'ON' : 'OFF';
+                        stateChanged = true;
+                    }
+                }
+            });
+            // Only update the DOM text if a background hardware change actually happened
+            if (stateChanged) {
+                updateOnCount(); 
+            }
+        });
+}, 8000);
+</script>
+{% endblock %}

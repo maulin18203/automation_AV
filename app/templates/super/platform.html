@@ -1,0 +1,109 @@
+{% extends "super/super_base.html" %}
+{% block title %}Platform{% endblock %}
+{% block page_title %}Platform Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-globe" style="color:#a29bfe;margin-right:8px"></i>Platform Overview</h1>
+    <p>Super Admin — Global system management</p>
+</div>
+
+<!-- Platform Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-icon teal"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-value">{{ users_count }}</div>
+        <div class="stat-sub">Across all homes</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top">
+            <div class="stat-label">Homes</div>
+            <div class="stat-icon gold"><i class="bi bi-house"></i></div>
+        </div>
+        <div class="stat-value">{{ homes_count }}</div>
+        <div class="stat-sub">Active homes</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top">
+            <div class="stat-label">MQTT Devices</div>
+            <div class="stat-icon green"><i class="bi bi-broadcast"></i></div>
+        </div>
+        <div class="stat-value">{{ devices_count }}</div>
+        <div class="stat-sub">Registered</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-top">
+            <div class="stat-label">MQTT Broker</div>
+            <div class="stat-icon {% if mqtt_connected %}green{% else %}red{% endif %}">
+                <i class="bi bi-{% if mqtt_connected %}check-circle{% else %}x-circle{% endif %}"></i>
+            </div>
+        </div>
+        <div class="stat-value" style="font-size:1rem">{{ 'Connected' if mqtt_connected else 'Offline' }}</div>
+        <div class="stat-sub">Broker status</div>
+    </div>
+</div>
+
+<div class="dashboard-grid-2">
+    <!-- OTA Firmware Push -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2><i class="bi bi-cloud-upload" style="color:#a29bfe;margin-right:8px"></i>OTA Firmware Update</h2>
+            <span class="badge badge-purple">Super Admin</span>
+        </div>
+        <div class="section-card-body">
+            <form method="POST" action="{{ url_for('super.ota_push') }}">
+                <div class="form-group">
+                    <label class="form-label">Device ID</label>
+                    <input type="text" name="device_id" class="form-control" placeholder="e.g. esp32_livingroom_01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Firmware URL</label>
+                    <input type="url" name="firmware_url" class="form-control" placeholder="https://your-server.com/firmware.bin" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">SHA256 Hash</label>
+                    <input type="text" name="sha256" class="form-control" placeholder="Hash for verification" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px">
+                    <i class="bi bi-cloud-upload"></i> Push Firmware
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2><i class="bi bi-info-circle" style="color:#a29bfe;margin-right:8px"></i>System Information</h2>
+        </div>
+        <div class="section-card-body" style="display:grid;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Platform Version</span>
+                <span class="badge badge-purple">v2.0.0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">API Status</span>
+                <span class="badge badge-on"><i class="bi bi-circle-fill" style="font-size:0.5rem"></i> Active</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">MQTT Broker</span>
+                <span class="badge {% if mqtt_connected %}badge-on{% else %}badge-danger{% endif %}">
+                    <i class="bi bi-circle-fill" style="font-size:0.5rem"></i>
+                    {{ 'Connected' if mqtt_connected else 'Disconnected' }}
+                </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Today's Logs</span>
+                <span style="font-size:0.85rem;font-weight:600">{{ logs_today }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <span style="color:rgba(255,255,255,0.5);font-size:0.85rem">Architecture</span>
+                <span style="font-size:0.8rem;color:var(--text-muted)">Flask + MQTT + Firebase</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

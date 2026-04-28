@@ -1,0 +1,86 @@
+{% extends "users/user_base.html" %}
+{% block title %}Search Results{% endblock %}
+{% block page_title %}Search{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-search" style="color:var(--gold);margin-right:8px"></i>Search Results</h1>
+    <p>Results for: "<strong>{{ query }}</strong>"</p>
+</div>
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>{{ results|length }} device(s) found</h2>
+    </div>
+    <div class="section-card-body">
+        {% if results %}
+        <div class="devices-grid">
+            {% for dev in results %}
+            <div class="device-card {% if dev.state %}device-on{% endif %}" id="card_{{ dev.id }}">
+                <div class="device-icon"><i class="{{ dev.icon }}" style="font-size:1.8rem"></i></div>
+                <div class="device-name">{{ dev.name }}</div>
+                <div class="device-room">{{ dev.room }}</div>
+                <span class="device-status" id="status_{{ dev.id }}">{{ 'ON' if dev.state else 'OFF' }}</span>
+                <div class="toggle-wrap">
+                    <span class="toggle-label">{{ 'Active' if dev.state else 'Inactive' }}</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" data-device="{{ dev.id }}"
+                               {% if dev.state %}checked{% endif %}
+                               onchange="onDeviceToggle(this, '{{ dev.id }}', '{{ dev.name }}')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3)">
+            <i class="bi bi-search" style="font-size:3rem;display:block;margin-bottom:16px"></i>
+            <p>No devices found matching "{{ query }}"</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+// FIXED: Proper onDeviceToggle with card/status update (was missing before)
+function onDeviceToggle(el, devId, devName) {
+    const state = el.checked;
+    const card = document.getElementById('card_' + devId);
+    const statusEl = document.getElementById('status_' + devId);
+
+    // Optimistic UI
+    if (state) { card.classList.add('device-on'); }
+    else       { card.classList.remove('device-on'); }
+    if (statusEl) statusEl.textContent = state ? 'ON' : 'OFF';
+
+    // Update toggle label
+    const toggleLabel = card.querySelector('.toggle-label');
+    if (toggleLabel) toggleLabel.textContent = state ? 'Active' : 'Inactive';
+
+    fetch('/user/api/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device: devId, state: state})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.ok) {
+            // Revert on failure
+            el.checked = !state;
+            if (!state) card.classList.add('device-on');
+            else        card.classList.remove('device-on');
+            if (statusEl) statusEl.textContent = !state ? 'ON' : 'OFF';
+            if (toggleLabel) toggleLabel.textContent = !state ? 'Active' : 'Inactive';
+            showToast('Failed to toggle ' + devName, 'error');
+        } else {
+            showToast(devName + ' turned ' + (state ? 'ON' : 'OFF'), state ? 'success' : 'info');
+        }
+    })
+    .catch(() => {
+        el.checked = !state;
+        if (!state) card.classList.add('device-on');
+        else        card.classList.remove('device-on');
+        if (statusEl) statusEl.textContent = !state ? 'ON' : 'OFF';
+        showToast('Network error, please try again.', 'error');
+    });
+}
+</script>
+{% endblock %}
