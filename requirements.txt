@@ -1,7 +1,4 @@
-Flask
-firebase-admin
-paho-mqtt
-python-dotenv
-requests
+flask
 gunicorn
-Flask-Compress
+python-dotenv
+flask-compress
